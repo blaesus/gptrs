@@ -25,7 +25,7 @@ fn bbpe_compress(input: &[u8]) -> CompressResult {
     }
 
     let mut compressed: Vec<u16> = input.iter().map(|u| *u as u16).collect(); // convert u8 to u16
-    while dict.len() < 2000 {
+    while dict.len() < 300 {
         // Find max frequency pair
         let (max_freq, max_freq_pair) = {
             let mut frequency_dict = HashMap::new();
@@ -54,17 +54,38 @@ fn bbpe_compress(input: &[u8]) -> CompressResult {
     CompressResult { compressed, dict }
 }
 
+fn fully_decompressed(input: &[u16]) -> bool {
+    input.iter().all(|&x| x <= 255)
+}
+
+fn bbpe_decompress(result: &CompressResult) -> String {
+    let mut decompressed: Vec<u16> = Vec::new();
+    for i in 0..result.compressed.len() {
+        let token = result.compressed[i];
+        let (byte1, byte2) = result.dict[token as usize];
+        decompressed.push(byte1);
+        if byte2 > 0 {
+            decompressed.push(byte2);
+        }
+    }
+    if fully_decompressed(&result.compressed) {
+        return String::from_utf8(result.compressed.iter().map(|&u| u as u8).collect()).unwrap();
+    }
+    else {
+        bbpe_decompress(&CompressResult { compressed: decompressed, dict: result.dict.clone() })
+    }
+}
+
 fn main() {
     let path = "./data/shakespear.txt";
     match read_text_file(path) {
         Ok(content) => {
             // shorten the first 100 characters
-            let content = &content[..50000];
-            println!("{}", content);
+            let content = &content[..10000];
             let bytes = text_to_bytes(content);
             let result = bbpe_compress(&bytes);
-            println!("Compressed ({} tokens)", result.compressed.len());
-            println!("Dictionary: {:?}", result.dict);
+            let decompressed = bbpe_decompress(&result);
+            println!("Decompressed {}", decompressed);
         }
         Err(e) => eprintln!("Error: {}", e),
     }
