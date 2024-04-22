@@ -1,4 +1,5 @@
 mod tokenize;
+mod matrix;
 
 use std;
 use crate::tokenize::{bbpe_compress, bbpe_decompress};
