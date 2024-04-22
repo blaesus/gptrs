@@ -73,8 +73,7 @@ fn bbpe_decompress(result: &CompressResult) -> String {
     }
     if fully_decompressed(&result.compressed) {
         return String::from_utf8(result.compressed.iter().map(|&u| u as u8).collect()).unwrap();
-    }
-    else {
+    } else {
         bbpe_decompress(&CompressResult { compressed: decompressed, dict: result.dict.clone() })
     }
 }
@@ -87,7 +86,7 @@ fn main() {
             let content = &content[..20000];
             let bytes = text_to_bytes(content);
             let result = bbpe_compress(&bytes);
-            println!("\n###Compressed (tokens):{}\n", result.compressed.len());
+            println!("\n###Compressed ({} tokens): {:?}\n", result.compressed.len(), result.compressed.iter().take(100).collect::<Vec<&u16>>());
             let decompressed = bbpe_decompress(&result);
             println!("\n###Decompressed:\n {}", decompressed);
         }
