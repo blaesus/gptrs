@@ -1,8 +1,8 @@
 use std::ops::{Add, Mul};
-struct Matrix {
-    rows: usize,
-    cols: usize,
-    data: Vec<f32>,
+pub struct Matrix {
+    pub rows: usize,
+    pub cols: usize,
+    pub data: Vec<f32>,
 }
 
 impl Add for Matrix {
