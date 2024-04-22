@@ -25,7 +25,7 @@ fn bbpe_compress(input: &[u8]) -> CompressResult {
     }
 
     let mut compressed: Vec<u16> = input.iter().map(|u| *u as u16).collect(); // convert u8 to u16
-    while dict.len() < 300 {
+    while dict.len() < 1000 {
         // Find max frequency pair
         let (max_freq, max_freq_pair) = {
             let mut frequency_dict = HashMap::new();
@@ -38,6 +38,9 @@ fn bbpe_compress(input: &[u8]) -> CompressResult {
             (*max_freq, *max_freq_pair)
         };
         println!("Max frequency pair: {:?} with frequency {}", max_freq_pair, max_freq);
+        if max_freq <= 1 {
+            break;
+        }
         dict.push(max_freq_pair);
 
         let mut i = 0;
@@ -81,11 +84,12 @@ fn main() {
     match read_text_file(path) {
         Ok(content) => {
             // shorten the first 100 characters
-            let content = &content[..10000];
+            let content = &content[..20000];
             let bytes = text_to_bytes(content);
             let result = bbpe_compress(&bytes);
+            println!("\n###Compressed (tokens):{}\n", result.compressed.len());
             let decompressed = bbpe_decompress(&result);
-            println!("Decompressed {}", decompressed);
+            println!("\n###Decompressed:\n {}", decompressed);
         }
         Err(e) => eprintln!("Error: {}", e),
     }
