@@ -1,11 +1,22 @@
 use std::collections::HashMap;
+
 pub struct CompressResult {
     pub compressed: Vec<u16>,
     pub dict: Vec<(u16, u16)>,
 }
-
 fn byte_pair_key(byte1: u16, byte2: u16) -> (u16, u16) {
     (byte1, byte2)
+}
+
+fn find_most_frequent_pair(compressed: &[u16]) -> (u32, (u16, u16)) {
+    let mut frequency_dict = HashMap::new();
+    for i in 0..compressed.len() - 1 {
+        let key = byte_pair_key(compressed[i], compressed[i + 1]);
+        let counter = frequency_dict.entry(key).or_insert(0);
+        *counter += 1;
+    }
+    let (max_freq_pair, max_freq) = frequency_dict.iter().max_by_key(|&(_, count)| count).unwrap();
+    (*max_freq, *max_freq_pair)
 }
 
 pub fn bbpe_compress(input: &[u8]) -> CompressResult {
@@ -17,16 +28,7 @@ pub fn bbpe_compress(input: &[u8]) -> CompressResult {
     let mut compressed: Vec<u16> = input.iter().map(|u| *u as u16).collect(); // convert u8 to u16
     while dict.len() < 1000 {
         // Find max frequency pair
-        let (max_freq, max_freq_pair) = {
-            let mut frequency_dict = HashMap::new();
-            for i in 0..compressed.len() - 1 {
-                let key = byte_pair_key(compressed[i], compressed[i + 1]);
-                let counter = frequency_dict.entry(key).or_insert(0);
-                *counter += 1;
-            }
-            let (max_freq_pair, max_freq) = frequency_dict.iter().max_by_key(|&(_, count)| count).unwrap();
-            (*max_freq, *max_freq_pair)
-        };
+        let (max_freq, max_freq_pair) = find_most_frequent_pair(&compressed);
         println!("Max frequency pair: {:?} with frequency {}", max_freq_pair, max_freq);
         if max_freq <= 1 {
             break;
