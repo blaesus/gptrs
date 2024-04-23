@@ -1,6 +1,7 @@
 mod tokenize;
 mod matrix;
 mod nn;
+mod rand;
 
 use std;
 use crate::tokenize::{bbpe_compress, bbpe_decompress};

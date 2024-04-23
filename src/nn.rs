@@ -6,6 +6,15 @@ struct Layer {
     bias: Vector,
 }
 
+impl Layer {
+    pub fn new_random(input_size: usize, output_size: usize) -> Layer {
+        Layer {
+            weights: Matrix::new_random(output_size, input_size),
+            bias: Vector::new_random(output_size),
+        }
+    }
+}
+
 #[derive(Clone)]
 struct NeuralNetwork {
     layers: Vec<Layer>,
@@ -26,9 +35,9 @@ impl NeuralNetwork {
     }
 
     pub fn backward(&self, inputs: Vector, targets: Vector) {
-        // let result = self.forward(&inputs);
-        // let error = targets - result;
-        // let mut delta = error.clone();
+        let result = self.forward(&inputs);
+        let error = targets - result;
+        let mut delta = error.clone();
         // for layer in self.layers.iter().rev() {
         //     let weights_transposed = layer.weights.clone().transpose();
         //     let gradient = delta.clone() * result.clone();
