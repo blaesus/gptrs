@@ -11,14 +11,14 @@ impl Mul for Matrix {
     type Output = Matrix;
 
 
-    fn mul(self, other: Matrix) -> Matrix {
-        assert_eq!(self.cols, other.rows);
-        let mut result = Matrix::new(self.rows, other.cols);
+    fn mul(self, rhs: Matrix) -> Matrix {
+        assert_eq!(self.cols, rhs.rows);
+        let mut result = Matrix::new(self.rows, rhs.cols);
         for i in 0..self.rows {
-            for j in 0..other.cols {
+            for j in 0..rhs.cols {
                 let mut sum = 0.0;
                 for k in 0..self.cols {
-                    sum += self.get(i, k) * other.get(k, j);
+                    sum += self.get(i, k) * rhs.get(k, j);
                 }
                 result.set(i, j, sum);
             }
@@ -30,16 +30,15 @@ impl Mul for Matrix {
 impl Mul<Vector> for Matrix {
     type Output = Vector;
 
-    fn mul(self, other: Vector) -> Vector {
-        let other_matrix = Matrix {
-            rows: other.data().len(),
+    fn mul(self, rhs: Vector) -> Vector {
+        let vector_as_matrix = Matrix {
+            rows: rhs.data().len(),
             cols: 1,
-            data: other.data().clone(),
+            data: rhs.data().clone(),
         };
-        let result_matrix = self * other_matrix;
+        let result_matrix = self * vector_as_matrix;
         Vector(result_matrix)
     }
-
 }
 
 impl Matrix {
@@ -203,13 +202,16 @@ mod tests {
     #[test]
     fn test_matrix_vector_product() {
         let a = Matrix {
-            rows: 2,
+            rows: 3,
             cols: 2,
-            data: vec![1.0, 2.0, 3.0, 4.0],
+            data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
         };
-        let b = Vector::new(vec![5.0, 6.0]);
+        let b = Vector::new(vec![7.0, 8.0]);
         let result = a * b;
-        assert_eq!(result.data(), &vec![17.0, 39.0]);
+        assert_eq!(result.data(), &vec![
+            23.0,
+            53.0,
+            83.0,
+        ]);
     }
-
 }

@@ -17,7 +17,8 @@ impl NeuralNetwork {
     pub fn feedforward(&self, inputs: &Vector) -> Vector {
         let mut result = inputs.clone();
         for layer in &self.layers {
-            result = (layer.weights.clone() * result) + Vector::new_uniform(layer.bias, layer.weights.rows);
+            let bias= Vector::new_uniform(layer.bias, layer.weights.cols);
+            result = layer.weights.clone() * result + bias
         }
         result
     }
@@ -27,7 +28,7 @@ impl NeuralNetwork {
 #[cfg(test)]
 mod tests {
     use super::*;
-    //
+
     // #[test]
     // fn test_nn_feedforward() {
     //     let layer1 = Layer {
