@@ -1,17 +1,25 @@
 use crate::matrix::{Matrix, Vector};
 
-fn relu_f32(x: f32) -> f32 {
-    if x > 0.0 {
-        x
-    } else {
-        0.0
+trait ActivationFunction {
+    fn apply(&self, vector: Vector) -> Vector;
+    fn apply_derivative(&self, vector: Vector) -> Vector;
+}
+
+struct Relu;
+
+impl ActivationFunction for Relu {
+
+    fn apply(&self, vector: Vector) -> Vector {
+        let data = vector.data().iter().map(|x| x.max(0.0)).collect();
+        Vector::new(data)
+    }
+
+    fn apply_derivative(&self, vector: Vector) -> Vector {
+        let data = vector.data().iter().map(|x| if *x > 0.0 { 1.0 } else { 0.0 }).collect();
+        Vector::new(data)
     }
 }
 
-fn relu_vector(vector: Vector) -> Vector {
-    let data = vector.data().iter().map(|x| relu_f32(*x)).collect();
-    Vector::new(data)
-}
 
 #[derive(Clone)]
 struct Layer {
@@ -34,8 +42,16 @@ impl Layer {
     pub fn forward(&self, inputs: &Vector) -> Vector {
         let Layer {bias, weights} = self;
         let z = weights * inputs + bias;
-        let a = relu_vector(z);
+        let a = Relu.apply(z);
         a
+    }
+
+    pub fn backward(&mut self) {
+        let learning_rate = 0.001;
+        let Layer {bias, weights} = self;
+
+        let gradient_weight = todo!();
+        let new_weights = weights - learning_rate * gradient_weight;
     }
 }
 
