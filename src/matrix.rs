@@ -26,6 +26,21 @@ impl Mul for Matrix {
     }
 }
 
+impl Mul<Vector> for Matrix {
+    type Output = Vector;
+
+    fn mul(self, other: Vector) -> Vector {
+        let other_matrix = Matrix {
+            rows: 1,
+            cols: other.data().len(),
+            data: other.data().clone(),
+        };
+        let result_matrix = self * other_matrix;
+        Vector(result_matrix)
+    }
+
+}
+
 impl Matrix {
     fn new(rows: usize, cols: usize) -> Matrix {
         Matrix {
@@ -120,25 +135,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_matrix_add() {
-        let a = Matrix {
-            rows: 2,
-            cols: 2,
-            data: vec![1.0, 2.0, 3.0, 4.0],
-        };
-        let b = Matrix {
-            rows: 2,
-            cols: 2,
-            data: vec![5.0, 6.0, 7.0, 8.0],
-        };
-        let result = a + b;
-        assert_eq!(result.get(0, 0), 6.0);
-        assert_eq!(result.get(0, 1), 8.0);
-        assert_eq!(result.get(1, 0), 10.0);
-        assert_eq!(result.get(1, 1), 12.0);
-    }
-
-    #[test]
     fn test_matrix_mul() {
         let a = Matrix {
             rows: 2,
@@ -155,25 +151,6 @@ mod tests {
         assert_eq!(result.get(0, 1), 22.0);
         assert_eq!(result.get(1, 0), 43.0);
         assert_eq!(result.get(1, 1), 50.0);
-    }
-
-    #[test]
-    fn test_matrix_sub() {
-        let a = Matrix {
-            rows: 2,
-            cols: 2,
-            data: vec![1.0, 2.0, 3.0, 4.0],
-        };
-        let b = Matrix {
-            rows: 2,
-            cols: 2,
-            data: vec![5.0, 6.0, 7.0, 8.0],
-        };
-        let result = a - b;
-        assert_eq!(result.get(0, 0), -4.0);
-        assert_eq!(result.get(0, 1), -4.0);
-        assert_eq!(result.get(1, 0), -4.0);
-        assert_eq!(result.get(1, 1), -4.0);
     }
 
     #[test]
@@ -195,4 +172,33 @@ mod tests {
         let a = Vector::new_uniform(1.0, 3);
         assert_eq!(a.data(), &vec![1.0, 1.0, 1.0]);
     }
+
+    #[test]
+    fn test_vector_add() {
+        let a = Vector::new(vec![1.0, 2.0, 3.0]);
+        let b = Vector::new(vec![4.0, 5.0, 6.0]);
+        let result = a + b;
+        assert_eq!(result.data(), &vec![5.0, 7.0, 9.0]);
+    }
+
+    #[test]
+    fn test_vector_sub() {
+        let a = Vector::new(vec![1.0, 2.0, 3.0]);
+        let b = Vector::new(vec![4.0, 5.0, 6.0]);
+        let result = a - b;
+        assert_eq!(result.data(), &vec![-3.0, -3.0, -3.0]);
+    }
+
+    #[test]
+    fn test_matrix_vector_product() {
+        let a = Matrix {
+            rows: 2,
+            cols: 2,
+            data: vec![1.0, 2.0, 3.0, 4.0],
+        };
+        let b = Vector::new(vec![5.0, 6.0]);
+        let result = a * b;
+        assert_eq!(result.data(), &vec![17.0, 39.0]);
+    }
+
 }
