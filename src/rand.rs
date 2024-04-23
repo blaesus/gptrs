@@ -17,3 +17,11 @@ pub fn random_f32() -> f32 {
     // Return the random number as a f32 in the range [0, 1)
     (*rng as f32) / (M as f32)
 }
+
+pub fn random_gaussian(mean: f32, std_dev: f32) -> f32 {
+    // Box-Muller transform to generate a random number from a Gaussian distribution
+    let u1 = random_f32();
+    let u2 = random_f32();
+    let z0 = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f32::consts::PI * u2).cos();
+    mean + z0 * std_dev
+}

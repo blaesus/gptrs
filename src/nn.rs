@@ -7,15 +7,14 @@ struct Layer {
 }
 
 impl Layer {
-    pub fn new_random(input_size: usize, output_size: usize) -> Layer {
+    pub fn new_kaiming(input_size: usize, output_size: usize) -> Layer {
         Layer {
-            weights: Matrix::new_random(output_size, input_size),
-            bias: Vector::new_random(output_size),
+            weights: Matrix::new_kaiming(output_size, input_size),
+            bias: Vector::new_kaiming(output_size),
         }
     }
 
     pub fn normalize(&mut self) {
-        // self.weights.normalize();
         self.bias.normalize();
     }
 }

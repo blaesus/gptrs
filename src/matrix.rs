@@ -1,5 +1,5 @@
 use std::ops::{Add, Mul, Sub};
-use crate::rand::random_f32;
+use crate::rand::{random_f32, random_gaussian};
 
 #[derive(Clone)]
 pub struct Matrix {
@@ -111,6 +111,18 @@ impl Matrix {
         }
     }
 
+    pub fn new_kaiming(rows: usize, cols: usize) -> Matrix {
+        let mut data = Vec::with_capacity(rows * cols);
+        for _ in 0..rows * cols {
+            data.push(random_gaussian(0.0, 2.0 / cols as f32));
+        }
+        Matrix {
+            rows,
+            cols,
+            data,
+        }
+    }
+
     pub fn from_data(data: Vec<f32>, rows: usize, cols: usize) -> Matrix {
         assert_eq!(data.len(), rows * cols);
         Matrix {
@@ -166,6 +178,14 @@ impl Vector {
 
     pub fn new_uniform(element: f32, length: usize) -> Self {
         Self::new((0..length).map(|_| element).collect())
+    }
+
+    pub fn new_kaiming(length: usize) -> Self {
+        let mut data = Vec::with_capacity(length);
+        for _ in 0..length {
+            data.push(random_gaussian(0.0, 2.0 / length as f32));
+        }
+        Self::new(data)
     }
 
     pub fn normalize(&mut self) {
