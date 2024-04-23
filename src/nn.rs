@@ -1,10 +1,12 @@
 use crate::matrix::{Matrix, Vector};
 
+#[derive(Clone)]
 struct Layer {
     weights: Matrix,
     bias: Vector,
 }
 
+#[derive(Clone)]
 struct NeuralNetwork {
     layers: Vec<Layer>,
 }
@@ -17,8 +19,8 @@ impl NeuralNetwork {
     pub fn forward(&self, inputs: &Vector) -> Vector {
         let mut result = inputs.clone();
         for layer in &self.layers {
-            let Layer {bias, weights} = layer;
-            result = weights.clone() * result + bias.clone()
+            let Layer {bias, weights} = layer.clone();
+            result = weights * result + bias
         }
         result
     }
