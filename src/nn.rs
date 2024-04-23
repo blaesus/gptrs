@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn test_nn_feedforward() {
         let layer1 = Layer {
-            weights: Matrix::from_data(vec![1.0, 2.0, 3.0, 4.0], 2, 2),
+            weights: Matrix::from_data(vec![1.0, 2.0, 3.0, -4.0], 2, 2),
             bias: Vector::new_uniform(1.0, 2),
         };
         let layer2 = Layer {
@@ -81,6 +81,6 @@ mod tests {
         let nn = NeuralNetwork::new(vec![layer1, layer2]);
         let inputs = Vector::new(vec![1.0, 2.0]);
         let result = nn.forward(&inputs);
-        assert_eq!(result.data(), &vec![31.0]);
+        assert_eq!(result.data(), &vec![7.0]);
     }
 }
