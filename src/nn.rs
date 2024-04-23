@@ -30,6 +30,13 @@ impl Layer {
     pub fn normalize(&mut self) {
         self.bias.normalize();
     }
+
+    pub fn forward(&self, inputs: &Vector) -> Vector {
+        let Layer {bias, weights} = self;
+        let z = weights * inputs + bias;
+        let a = relu_vector(z);
+        a
+    }
 }
 
 #[derive(Clone)]
@@ -44,22 +51,10 @@ impl NeuralNetwork {
 
     pub fn forward(&self, inputs: &Vector) -> Vector {
         let mut result = inputs.clone();
-        for layer in &self.layers {
-            let Layer {bias, weights} = layer;
-            result = relu_vector(weights * result + bias);
+        for layer in self.layers.iter() {
+            result = layer.forward(&result);
         }
         result
-    }
-
-    pub fn backward(&self, inputs: Vector, targets: Vector) {
-        let result = self.forward(&inputs);
-        let error = targets - result;
-        let mut delta = error.clone();
-        // for layer in self.layers.iter().rev() {
-        //     let weights_transposed = layer.weights.clone().transpose();
-        //     let gradient = delta.clone() * result.clone();
-        //     let delta = weights_transposed * delta;
-        // }
     }
 }
 
