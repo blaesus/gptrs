@@ -7,11 +7,11 @@ pub struct Matrix {
     pub data: Vec<f32>,
 }
 
-impl Mul for Matrix {
+impl Mul<&Matrix> for &Matrix {
     type Output = Matrix;
 
 
-    fn mul(self, rhs: Matrix) -> Matrix {
+    fn mul(self, rhs: &Matrix) -> Matrix {
         assert_eq!(self.cols, rhs.rows);
         let mut result = Matrix::new(self.rows, rhs.cols);
         for i in 0..self.rows {
@@ -27,10 +27,33 @@ impl Mul for Matrix {
     }
 }
 
-impl Mul<Vector> for Matrix {
+impl Mul<Matrix> for &Matrix {
+    type Output = Matrix;
+
+    fn mul(self, rhs: Matrix) -> Matrix {
+        self * &rhs
+    }
+}
+
+impl Mul<&Matrix> for Matrix {
+    type Output = Matrix;
+
+    fn mul(self, rhs: &Matrix) -> Matrix {
+        &self * rhs
+    }
+}
+
+impl Mul<Matrix> for Matrix {
+    type Output = Matrix;
+
+    fn mul(self, rhs: Matrix) -> Matrix {
+        &self * &rhs
+    }
+}
+impl Mul<&Vector> for &Matrix {
     type Output = Vector;
 
-    fn mul(self, rhs: Vector) -> Vector {
+    fn mul(self, rhs: &Vector) -> Vector {
         let vector_as_matrix = Matrix {
             rows: rhs.data().len(),
             cols: 1,
@@ -40,6 +63,31 @@ impl Mul<Vector> for Matrix {
         Vector(result_matrix)
     }
 }
+
+impl Mul<&Vector> for Matrix {
+    type Output = Vector;
+
+    fn mul(self, rhs: &Vector) -> Vector {
+        &self * rhs
+    }
+}
+
+impl Mul<Vector> for &Matrix {
+    type Output = Vector;
+
+    fn mul(self, rhs: Vector) -> Vector {
+        self * &rhs
+    }
+}
+
+impl Mul<Vector> for Matrix {
+    type Output = Vector;
+
+    fn mul(self, rhs: Vector) -> Vector {
+        &self * &rhs
+    }
+}
+
 
 impl Matrix {
     pub fn new(rows: usize, cols: usize) -> Matrix {
@@ -122,13 +170,21 @@ impl Vector {
     }
 }
 
-impl Add for Vector {
+impl Add<&Vector> for Vector {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self::Output {
+    fn add(self, rhs: &Self) -> Self::Output {
         assert_eq!(self.data().len(), rhs.data().len());
         let new_data = self.data().iter().zip(rhs.data().iter()).map(|(a, b)| a + b).collect();
         return Self::new(new_data);
+    }
+}
+
+impl Add<Vector> for Vector {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        self + &rhs
     }
 }
 
