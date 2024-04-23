@@ -83,8 +83,8 @@ pub struct Vector(Matrix);
 impl Vector {
     pub fn new(data: Vec<f32>) -> Self {
         Vector(Matrix {
-            rows: 1,
-            cols: data.len(),
+            rows: data.len(),
+            cols: 1,
             data,
         })
     }
