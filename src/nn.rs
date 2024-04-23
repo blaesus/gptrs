@@ -1,4 +1,4 @@
-use crate::matrix::Matrix;
+use crate::matrix::{Matrix, Vector};
 
 struct Layer {
     weights: Matrix,
@@ -6,6 +6,41 @@ struct Layer {
 }
 
 struct NeuralNetwork {
-    layers: Vec<Layer>
+    layers: Vec<Layer>,
 }
 
+impl NeuralNetwork {
+    pub fn new(layers: Vec<Layer>) -> NeuralNetwork {
+        NeuralNetwork { layers }
+    }
+
+    pub fn feedforward(&self, inputs: &Vector) -> Vector {
+        let mut result = inputs.clone();
+        for layer in &self.layers {
+            result = (layer.weights.clone() * result) + Vector::new_uniform(layer.bias, layer.weights.rows);
+        }
+        result
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    //
+    // #[test]
+    // fn test_nn_feedforward() {
+    //     let layer1 = Layer {
+    //         weights: Matrix::from_data(vec![1.0, 2.0, 3.0, 4.0], 2, 2),
+    //         bias: 1.0,
+    //     };
+    //     let layer2 = Layer {
+    //         weights: Matrix::from_data(vec![1.0, 2.0], 2, 1),
+    //         bias: 1.0,
+    //     };
+    //     let nn = NeuralNetwork::new(vec![layer1, layer2]);
+    //     let inputs = Vector::new(vec![1.0, 2.0]);
+    //     let result = nn.feedforward(&inputs);
+    //     assert_eq!(result.data(), &vec![13.0]);
+    // }
+}

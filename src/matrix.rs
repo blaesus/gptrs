@@ -1,5 +1,6 @@
 use std::ops::{Add, Mul, Sub};
 
+#[derive(Clone)]
 pub struct Matrix {
     pub rows: usize,
     pub cols: usize,
@@ -9,9 +10,9 @@ pub struct Matrix {
 impl Mul for Matrix {
     type Output = Matrix;
 
+
     fn mul(self, other: Matrix) -> Matrix {
         assert_eq!(self.cols, other.rows);
-
         let mut result = Matrix::new(self.rows, other.cols);
         for i in 0..self.rows {
             for j in 0..other.cols {
@@ -31,8 +32,8 @@ impl Mul<Vector> for Matrix {
 
     fn mul(self, other: Vector) -> Vector {
         let other_matrix = Matrix {
-            rows: 1,
-            cols: other.data().len(),
+            rows: other.data().len(),
+            cols: 1,
             data: other.data().clone(),
         };
         let result_matrix = self * other_matrix;
@@ -42,11 +43,20 @@ impl Mul<Vector> for Matrix {
 }
 
 impl Matrix {
-    fn new(rows: usize, cols: usize) -> Matrix {
+    pub fn new(rows: usize, cols: usize) -> Matrix {
         Matrix {
             rows,
             cols,
             data: vec![0.0; rows * cols],
+        }
+    }
+
+    pub fn from_data(data: Vec<f32>, rows: usize, cols: usize) -> Matrix {
+        assert_eq!(data.len(), rows * cols);
+        Matrix {
+            rows,
+            cols,
+            data,
         }
     }
 
@@ -68,7 +78,8 @@ impl Matrix {
     }
 }
 
-struct Vector(Matrix);
+#[derive(Clone)]
+pub struct Vector(Matrix);
 
 impl Vector {
     pub fn new(data: Vec<f32>) -> Self {
