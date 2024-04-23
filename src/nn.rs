@@ -22,6 +22,17 @@ impl NeuralNetwork {
         }
         result
     }
+
+    pub fn backward(&self, inputs: Vector, targets: Vector) {
+        // let result = self.forward(&inputs);
+        // let error = targets - result;
+        // let mut delta = error.clone();
+        // for layer in self.layers.iter().rev() {
+        //     let weights_transposed = layer.weights.clone().transpose();
+        //     let gradient = delta.clone() * result.clone();
+        //     let delta = weights_transposed * delta;
+        // }
+    }
 }
 
 

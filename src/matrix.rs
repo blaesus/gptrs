@@ -75,6 +75,20 @@ impl Matrix {
             println!();
         }
     }
+
+    fn transpose(&self) -> Matrix {
+        let mut new_data = vec![0.0; self.rows * self.cols];
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                new_data[j * self.rows + i] = self.get(i, j);
+            }
+        }
+        Matrix {
+            rows: self.cols,
+            cols: self.rows,
+            data: new_data,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -213,5 +227,18 @@ mod tests {
             53.0,
             83.0,
         ]);
+    }
+
+    #[test]
+    fn test_matrix_transpose() {
+        let a = Matrix {
+            rows: 2,
+            cols: 3,
+            data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        };
+        let result = a.transpose();
+        assert_eq!(result.rows, 3);
+        assert_eq!(result.cols, 2);
+        assert_eq!(result.data, vec![1.0, 4.0, 2.0, 5.0, 3.0, 6.0]);
     }
 }
