@@ -8,3 +8,4 @@ struct Layer {
 struct NeuralNetwork {
     layers: Vec<Layer>
 }
+

@@ -1,33 +1,9 @@
 use std::ops::{Add, Mul, Sub};
+
 pub struct Matrix {
     pub rows: usize,
     pub cols: usize,
     pub data: Vec<f32>,
-}
-
-impl Add for Matrix {
-    type Output = Matrix;
-
-    fn add(self, other: Matrix) -> Matrix {
-        assert_eq!(self.rows, other.rows);
-        assert_eq!(self.cols, other.cols);
-
-        let mut result = Matrix::new(self.rows, self.cols);
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                result.set(i, j, self.get(i, j) + other.get(i, j));
-            }
-        }
-        result
-    }
-}
-
-impl Sub for Matrix {
-    type Output = Matrix;
-
-    fn sub(self, other: Matrix) -> Matrix {
-        self + other.scalar_mul(-1.0)
-    }
 }
 
 impl Mul for Matrix {
@@ -75,19 +51,21 @@ impl Matrix {
             println!();
         }
     }
-
 }
 
 struct Vector(Matrix);
 
 impl Vector {
-
     pub fn new(data: Vec<f32>) -> Self {
         Vector(Matrix {
             rows: 1,
             cols: data.len(),
             data,
         })
+    }
+
+    pub fn new_uniform(element: f32, length: usize) -> Self {
+        Self::new((0..length).map(|_| element).collect())
     }
 
     pub fn data(&self) -> &Vec<f32> {
@@ -105,6 +83,24 @@ impl Vector {
     }
 }
 
+impl Add for Vector {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.data().len(), rhs.data().len());
+        let new_data = self.data().iter().zip(rhs.data().iter()).map(|(a, b)| a + b).collect();
+        return Self::new(new_data);
+    }
+}
+
+impl Sub for Vector {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self + rhs * -1.0
+    }
+}
+
 impl Mul<f32> for Vector {
     type Output = Self;
 
@@ -113,7 +109,7 @@ impl Mul<f32> for Vector {
         for i in 0..new_data.len() {
             new_data[i] *= rhs;
         }
-        return Self::new(new_data)
+        return Self::new(new_data);
     }
 }
 
@@ -181,32 +177,22 @@ mod tests {
     }
 
     #[test]
-    fn test_matrix_dot() {
-        let a = Matrix {
-            rows: 1,
-            cols: 2,
-            data: vec![1.0, 2.0],
-        };
-        let b = Matrix {
-            rows: 2,
-            cols: 1,
-            data: vec![3.0, 4.0],
-        };
-        let result = a.dot(&b);
-        assert_eq!(result, 11.0);
+    fn test_vector_dot() {
+        let a = Vector::new(vec![1.0, 2.0, 3.0]);
+        let b = Vector::new(vec![4.0, 5.0, 6.0]);
+        assert_eq!(a.dot(&b), 32.0);
     }
 
     #[test]
-    fn test_matrix_scalar_mul() {
-        let a = Matrix {
-            rows: 2,
-            cols: 2,
-            data: vec![1.0, 2.0, 3.0, 4.0],
-        };
-        let result = a.scalar_mul(2.0);
-        assert_eq!(result.get(0, 0), 2.0);
-        assert_eq!(result.get(0, 1), 4.0);
-        assert_eq!(result.get(1, 0), 6.0);
-        assert_eq!(result.get(1, 1), 8.0);
+    fn test_vector_mul() {
+        let a = Vector::new(vec![1.0, 2.0, 3.0]);
+        let result = a * 2.0;
+        assert_eq!(result.data(), &vec![2.0, 4.0, 6.0]);
+    }
+
+    #[test]
+    fn test_vector_new_uniform() {
+        let a = Vector::new_uniform(1.0, 3);
+        assert_eq!(a.data(), &vec![1.0, 1.0, 1.0]);
     }
 }
