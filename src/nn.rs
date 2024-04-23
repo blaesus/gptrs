@@ -1,5 +1,18 @@
 use crate::matrix::{Matrix, Vector};
 
+fn relu_f32(x: f32) -> f32 {
+    if x > 0.0 {
+        x
+    } else {
+        0.0
+    }
+}
+
+fn relu_vector(vector: Vector) -> Vector {
+    let data = vector.data().iter().map(|x| relu_f32(*x)).collect();
+    Vector::new(data)
+}
+
 #[derive(Clone)]
 struct Layer {
     weights: Matrix,
@@ -33,7 +46,7 @@ impl NeuralNetwork {
         let mut result = inputs.clone();
         for layer in &self.layers {
             let Layer {bias, weights} = layer;
-            result = weights * result + bias
+            result = relu_vector(weights * result + bias);
         }
         result
     }
