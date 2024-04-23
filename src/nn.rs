@@ -13,6 +13,11 @@ impl Layer {
             bias: Vector::new_random(output_size),
         }
     }
+
+    pub fn normalize(&mut self) {
+        // self.weights.normalize();
+        self.bias.normalize();
+    }
 }
 
 #[derive(Clone)]

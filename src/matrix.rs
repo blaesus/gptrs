@@ -168,6 +168,16 @@ impl Vector {
         Self::new((0..length).map(|_| element).collect())
     }
 
+    pub fn normalize(&mut self) {
+        let mean = self.data().iter().sum::<f32>() / self.data().len() as f32;
+        let n = self.data().len()-1; // Bessel's correction
+        let variance = self.data().iter().map(|x| (x - mean).powi(2)).sum::<f32>() / n as f32;
+        let std_dev = variance.sqrt();
+        for i in 0..self.data().len() {
+            self.data_mut()[i] = (self.data()[i] - mean) / std_dev;
+        }
+    }
+
     pub fn new_random(length: usize) -> Self {
         let mut data = Vec::with_capacity(length);
         for _ in 0..length {
@@ -221,12 +231,21 @@ impl Mul<f32> for Vector {
     type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
+        &self * rhs
+    }
+}
+
+impl Mul<f32> for &Vector {
+    type Output = Vector;
+
+    fn mul(self, rhs: f32) -> Self::Output {
         let mut new_data = self.data().clone();
         for i in 0..new_data.len() {
             new_data[i] *= rhs;
         }
-        return Self::new(new_data);
+        return Vector::new(new_data);
     }
+
 }
 
 // Tests
@@ -317,5 +336,12 @@ mod tests {
         assert_eq!(result.rows, 3);
         assert_eq!(result.cols, 2);
         assert_eq!(result.data, vec![1.0, 4.0, 2.0, 5.0, 3.0, 6.0]);
+    }
+
+    #[test]
+    fn test_vector_normalize() {
+        let mut a = Vector::new(vec![1.0, 2.0, 3.0]);
+        a.normalize();
+        assert_eq!(a.data(), &vec![-1.0, 0.0, 1.0]);
     }
 }
