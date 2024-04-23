@@ -76,21 +76,44 @@ impl Matrix {
         }
     }
 
-    fn dot(&self, other: &Matrix) -> f32 {
-        assert_eq!(self.rows, 1);
-        assert_eq!(self.cols, other.rows);
-        assert_eq!(other.cols, 1);
-        self.data.iter().zip(other.data.iter()).map(|(a, b)| a * b).sum()
+}
+
+struct Vector(Matrix);
+
+impl Vector {
+
+    pub fn new(data: Vec<f32>) -> Self {
+        Vector(Matrix {
+            rows: 1,
+            cols: data.len(),
+            data,
+        })
     }
 
-    fn scalar_mul(&self, scalar: f32) -> Matrix {
-        let mut result = Matrix::new(self.rows, self.cols);
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                result.set(i, j, self.get(i, j) * scalar);
-            }
+    pub fn data(&self) -> &Vec<f32> {
+        &self.0.data
+    }
+
+    pub fn data_mut(&mut self) -> &mut Vec<f32> {
+        &mut self.0.data
+    }
+    fn dot(&self, other: &Self) -> f32 {
+        let data = self.data();
+        let other_data = other.data();
+        assert_eq!(data.len(), other_data.len());
+        data.iter().zip(other_data.iter()).map(|(a, b)| a * b).sum()
+    }
+}
+
+impl Mul<f32> for Vector {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        let mut new_data = self.data().clone();
+        for i in 0..new_data.len() {
+            new_data[i] *= rhs;
         }
-        result
+        return Self::new(new_data)
     }
 }
 
