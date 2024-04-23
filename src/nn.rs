@@ -19,7 +19,7 @@ impl NeuralNetwork {
     pub fn forward(&self, inputs: &Vector) -> Vector {
         let mut result = inputs.clone();
         for layer in &self.layers {
-            let Layer {bias, weights} = layer.clone();
+            let Layer {bias, weights} = layer;
             result = weights * result + bias
         }
         result
