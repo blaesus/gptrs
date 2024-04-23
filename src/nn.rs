@@ -2,7 +2,7 @@ use crate::matrix::{Matrix, Vector};
 
 struct Layer {
     weights: Matrix,
-    bias: f32,
+    bias: Vector,
 }
 
 struct NeuralNetwork {
@@ -17,8 +17,8 @@ impl NeuralNetwork {
     pub fn forward(&self, inputs: &Vector) -> Vector {
         let mut result = inputs.clone();
         for layer in &self.layers {
-            let bias= Vector::new_uniform(layer.bias, layer.weights.rows);
-            result = layer.weights.clone() * result + bias
+            let Layer {bias, weights} = layer;
+            result = weights.clone() * result + bias.clone()
         }
         result
     }
@@ -44,11 +44,11 @@ mod tests {
     fn test_nn_feedforward() {
         let layer1 = Layer {
             weights: Matrix::from_data(vec![1.0, 2.0, 3.0, 4.0], 2, 2),
-            bias: 1.0,
+            bias: Vector::new_uniform(1.0, 2),
         };
         let layer2 = Layer {
             weights: Matrix::from_data(vec![1.0, 2.0], 1, 2),
-            bias: 1.0,
+            bias: Vector::new_uniform(1.0, 1),
         };
         let nn = NeuralNetwork::new(vec![layer1, layer2]);
         let inputs = Vector::new(vec![1.0, 2.0]);
