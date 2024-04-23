@@ -14,10 +14,10 @@ impl NeuralNetwork {
         NeuralNetwork { layers }
     }
 
-    pub fn feedforward(&self, inputs: &Vector) -> Vector {
+    pub fn forward(&self, inputs: &Vector) -> Vector {
         let mut result = inputs.clone();
         for layer in &self.layers {
-            let bias= Vector::new_uniform(layer.bias, layer.weights.cols);
+            let bias= Vector::new_uniform(layer.bias, layer.weights.rows);
             result = layer.weights.clone() * result + bias
         }
         result
@@ -29,19 +29,19 @@ impl NeuralNetwork {
 mod tests {
     use super::*;
 
-    // #[test]
-    // fn test_nn_feedforward() {
-    //     let layer1 = Layer {
-    //         weights: Matrix::from_data(vec![1.0, 2.0, 3.0, 4.0], 2, 2),
-    //         bias: 1.0,
-    //     };
-    //     let layer2 = Layer {
-    //         weights: Matrix::from_data(vec![1.0, 2.0], 2, 1),
-    //         bias: 1.0,
-    //     };
-    //     let nn = NeuralNetwork::new(vec![layer1, layer2]);
-    //     let inputs = Vector::new(vec![1.0, 2.0]);
-    //     let result = nn.feedforward(&inputs);
-    //     assert_eq!(result.data(), &vec![13.0]);
-    // }
+    #[test]
+    fn test_nn_feedforward() {
+        let layer1 = Layer {
+            weights: Matrix::from_data(vec![1.0, 2.0, 3.0, 4.0], 2, 2),
+            bias: 1.0,
+        };
+        let layer2 = Layer {
+            weights: Matrix::from_data(vec![1.0, 2.0], 1, 2),
+            bias: 1.0,
+        };
+        let nn = NeuralNetwork::new(vec![layer1, layer2]);
+        let inputs = Vector::new(vec![1.0, 2.0]);
+        let result = nn.forward(&inputs);
+        assert_eq!(result.data(), &vec![31.0]);
+    }
 }
