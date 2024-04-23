@@ -89,6 +89,50 @@ impl Mul<Vector> for Matrix {
     }
 }
 
+impl Mul<f32> for Matrix {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        let mut new_data = self.data.clone();
+        for i in 0..new_data.len() {
+            new_data[i] *= rhs;
+        }
+        return Matrix {
+            rows: self.rows,
+            cols: self.cols,
+            data: new_data,
+        };
+    }
+}
+
+impl Mul<f32> for &Matrix {
+    type Output = Matrix;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        self.clone() * rhs
+    }
+}
+
+impl Sub for Matrix {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.rows, rhs.rows);
+        assert_eq!(self.cols, rhs.cols);
+        let mut new_data = vec![0.0; self.rows * self.cols];
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                new_data[i * self.cols + j] = self.get(i, j) - rhs.get(i, j);
+            }
+        }
+        Matrix {
+            rows: self.rows,
+            cols: self.cols,
+            data: new_data,
+        }
+    }
+}
+
 
 impl Matrix {
     pub fn new(rows: usize, cols: usize) -> Matrix {
@@ -149,7 +193,7 @@ impl Matrix {
         }
     }
 
-    fn transpose(&self) -> Matrix {
+    pub fn transpose(&self) -> Matrix {
         let mut new_data = vec![0.0; self.rows * self.cols];
         for i in 0..self.rows {
             for j in 0..self.cols {
@@ -218,6 +262,18 @@ impl Vector {
         let other_data = other.data();
         assert_eq!(data.len(), other_data.len());
         data.iter().zip(other_data.iter()).map(|(a, b)| a * b).sum()
+    }
+
+    pub fn elementwise_mul(&self, other: &Self) -> Self {
+        let data = self.data();
+        let other_data = other.data();
+        assert_eq!(data.len(), other_data.len());
+        let new_data = data.iter().zip(other_data.iter()).map(|(a, b)| a * b).collect();
+        Self::new(new_data)
+    }
+
+    pub fn as_matrix(&self) -> &Matrix {
+        &self.0
     }
 }
 

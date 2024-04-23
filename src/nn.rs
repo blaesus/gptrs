@@ -20,6 +20,16 @@ impl ActivationFunction for Relu {
     }
 }
 
+fn mse(y_actual: &Vector, y_predicted: &Vector) -> f32 {
+    let sum: f32 = y_actual.data().iter().zip(y_predicted.data()).map(|(a, b)| (a - b).powi(2)).sum();
+    sum / y_actual.data().len() as f32
+}
+
+fn mse_derivative(y_actual: &Vector, y_predicted: &Vector) -> Vector {
+    let data = y_actual.data().iter().zip(y_predicted.data()).map(|(a, b)| 2.0 * (b - a)).collect();
+    Vector::new(data)
+}
+
 
 #[derive(Clone)]
 struct Layer {
@@ -46,12 +56,17 @@ impl Layer {
         a
     }
 
-    pub fn backward(&mut self) {
-        let learning_rate = 0.001;
-        let Layer {bias, weights} = self;
+    pub fn backward(&mut self, inputs: &Vector, outputs: &Vector, y_actual: &Vector, learning_rate: f32) {
+        let Layer {bias, weights} = &*self;
+        let z = weights * inputs + bias;
+        let a = Relu.apply(z);
 
-        let gradient_weight = todo!();
-        let new_weights = weights - learning_rate * gradient_weight;
+        let delta = mse_derivative(y_actual, outputs).elementwise_mul(&Relu.apply_derivative(a));
+        let gradient_weights = delta.as_matrix() * inputs.as_matrix().transpose();
+        let gradient_bias = delta;
+
+        todo!()
+
     }
 }
 
