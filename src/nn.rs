@@ -117,17 +117,13 @@ impl NeuralNetwork {
                 }
             };
             let y_calculated = {
-                if i == layers_count - 1 {
-                    layer_original_outputs[i].clone()
-                } else {
-                    layer_original_outputs[i + 1].clone()
-                }
+                layer_original_outputs[i].clone()
             };
             let y_expected = {
                 if i == layers_count - 1 {
                     y_actual.clone()
                 } else {
-                    let diff = y_calculated.elementwise_mul(&previous_input_gradient);
+                    let diff = previous_input_gradient * learning_rate;
                     &y_calculated - &diff
                 }
             };
@@ -163,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nn_backward_deterministic() {
+    fn test_nn_backward_manual_case() {
         let layer1 = Layer {
             weights: Matrix::from_data(vec![1.0, 2.0, 3.0, -4.0, -5.0, -6.0], 2, 3),
             bias: Vector::new_uniform(-2.0, 2),
@@ -178,12 +174,12 @@ mod tests {
         assert_eq!(forward_1.data(), &vec![1.0, 5.0]);
         let y_actual = Vector::new(vec![2.0, 4.0]);
         nn.backward(&inputs, &y_actual, 0.5);
-        println!("L0 weights: {:?}", nn.layers[0].weights);
-        println!("L0 bias: {:?}", nn.layers[0].bias);
-        println!("L1 weights: {:?}", nn.layers[1].weights);
-        println!("L1 bias: {:?}", nn.layers[1].bias);
 
+        // The new parameters are calculated by hand
         assert_eq!(nn.layers[1].weights, Matrix::from_data(vec![2.0, 2.0, 2.0, 4.0], 2, 2));
         assert_eq!(nn.layers[1].bias, Vector::new(vec![-0.5, -1.5]));
+
+        assert_eq!(nn.layers[0].weights, Matrix::from_data(vec![0.5, 2.0, 2.5, -4.0, -5.0, -6.0], 2, 3));
+        assert_eq!(nn.layers[0].bias, Vector::new(vec![-2.5, -2.0]));
     }
 }
