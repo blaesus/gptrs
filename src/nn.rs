@@ -188,10 +188,10 @@ mod tests {
         assert_eq!(nn.layers[0].weights, Matrix::from_data(vec![0.5, 2.0, 2.5, -4.0, -5.0, -6.0], 2, 3));
         assert_eq!(nn.layers[0].bias, Vector::new(vec![-2.5, -2.0]));
 
-        // Test if the NN actually converges
+        // Test if the NN works at all
         {
             let mut nn = make_nn();
-            for i in 0..1000 {
+            for _ in 0..1000 {
                 nn.backward(&inputs, &y_actual, 0.001);
             }
             let final_forward = nn.forward(&inputs);
