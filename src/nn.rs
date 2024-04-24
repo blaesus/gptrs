@@ -25,7 +25,8 @@ fn mse(y_actual: &Vector, y_predicted: &Vector) -> f32 {
 }
 
 fn mse_derivative(y_actual: &Vector, y_predicted: &Vector) -> Vector {
-    let data = y_actual.data().iter().zip(y_predicted.data()).map(|(a, b)| 2.0 * (b - a)).collect();
+    let n = y_actual.data().len() as f32;
+    let data = y_actual.data().iter().zip(y_predicted.data()).map(|(a, b)| 2.0 * (b - a) / n).collect();
     Vector::new(data)
 }
 
@@ -60,7 +61,7 @@ impl Layer {
         inputs: &Vector,
         y_calculated: &Vector,
         y_actual: &Vector,
-        learning_rate: f32
+        learning_rate: f32,
     ) -> Vector {
         // Magic! This is just the vectorized form of partial derivatives of loss relative to each
         // element in the upstream matrices/vectors.
@@ -94,12 +95,11 @@ impl NeuralNetwork {
         result
     }
 
-    pub fn backward(&mut self, inputs: &Vector, y_actual: &Vector) {
-        let learning_rate = 0.01;
+    pub fn backward(&mut self, inputs: &Vector, y_actual: &Vector, learning_rate: f32) {
         let layer_original_outputs = {
             let mut outputs: Vec<Vector> = vec![];
             for (i, layer) in self.layers.iter().enumerate() {
-                let input = if i == 0 { inputs.clone() } else { outputs[i - 1].clone()};
+                let input = if i == 0 { inputs.clone() } else { outputs[i - 1].clone() };
                 let y_calculated = layer.forward(&input);
                 outputs.push(y_calculated.clone());
             }
@@ -163,20 +163,27 @@ mod tests {
     }
 
     #[test]
-    fn test_nn_backward() {
+    fn test_nn_backward_deterministic() {
         let layer1 = Layer {
             weights: Matrix::from_data(vec![1.0, 2.0, 3.0, -4.0, -5.0, -6.0], 2, 3),
-            bias: Vector::new_uniform(1.0, 2),
+            bias: Vector::new_uniform(-2.0, 2),
         };
         let layer2 = Layer {
             weights: Matrix::from_data(vec![1.0, 2.0, 3.0, 4.0], 2, 2),
             bias: Vector::new_uniform(-1.0, 2),
         };
         let mut nn = NeuralNetwork::new(vec![layer1, layer2]);
-        let inputs = Vector::new(vec![1.0, 0.0, -1.0]);
-        let forward = nn.forward(&inputs);
-        assert_eq!(forward.data(), &vec![5.0, 11.0]);
-        let y_actual = Vector::new(vec![4.0, 10.0]);
-        nn.backward(&inputs, &y_actual);
+        let inputs = Vector::new(vec![1.0, 0.0, 1.0]);
+        let forward_1 = nn.forward(&inputs);
+        assert_eq!(forward_1.data(), &vec![1.0, 5.0]);
+        let y_actual = Vector::new(vec![2.0, 4.0]);
+        nn.backward(&inputs, &y_actual, 0.5);
+        println!("L0 weights: {:?}", nn.layers[0].weights);
+        println!("L0 bias: {:?}", nn.layers[0].bias);
+        println!("L1 weights: {:?}", nn.layers[1].weights);
+        println!("L1 bias: {:?}", nn.layers[1].bias);
+
+        assert_eq!(nn.layers[1].weights, Matrix::from_data(vec![2.0, 2.0, 2.0, 4.0], 2, 2));
+        assert_eq!(nn.layers[1].bias, Vector::new(vec![-0.5, -1.5]));
     }
 }
