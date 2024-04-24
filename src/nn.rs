@@ -157,4 +157,22 @@ mod tests {
         let result = nn.forward(&inputs);
         assert_eq!(result.data(), &vec![7.0]);
     }
+
+    #[test]
+    fn test_nn_backward() {
+        let layer1 = Layer {
+            weights: Matrix::from_data(vec![1.0, 2.0, 3.0, -4.0], 2, 2),
+            bias: Vector::new_uniform(1.0, 2),
+        };
+        let layer2 = Layer {
+            weights: Matrix::from_data(vec![1.0, 2.0], 1, 2),
+            bias: Vector::new_uniform(1.0, 1),
+        };
+        let mut nn = NeuralNetwork::new(vec![layer1, layer2]);
+        let inputs = Vector::new(vec![1.0, 2.0]);
+        let y_actual = Vector::new(vec![7.0]);
+        nn.backward(&inputs, &y_actual);
+        let result = nn.forward(&inputs);
+        assert_eq!(result.data(), &vec![7.0]);
+    }
 }
