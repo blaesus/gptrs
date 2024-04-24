@@ -161,6 +161,8 @@ mod tests {
     #[test]
     fn test_nn_backward_manual_case() {
 
+        let learning_rate = 0.5;
+
         fn make_nn() -> NeuralNetwork {
             let layer1 = Layer {
                 weights: Matrix::from_data(vec![1.0, 2.0, 3.0, -4.0, -5.0, -6.0], 2, 3),
@@ -179,7 +181,7 @@ mod tests {
         let forward_1 = nn.forward(&inputs);
         assert_eq!(forward_1.data(), &vec![1.0, 5.0]);
         let y_actual = Vector::new(vec![2.0, 4.0]);
-        nn.backward(&inputs, &y_actual, 0.5);
+        nn.backward(&inputs, &y_actual, learning_rate);
 
         // The new parameters are calculated by hand
         assert_eq!(nn.layers[1].weights, Matrix::from_data(vec![2.0, 2.0, 2.0, 4.0], 2, 2));
@@ -190,9 +192,10 @@ mod tests {
 
         // Test if the NN works at all
         {
+            let learning_rate = 0.001;
             let mut nn = make_nn();
             for _ in 0..1000 {
-                nn.backward(&inputs, &y_actual, 0.001);
+                nn.backward(&inputs, &y_actual, learning_rate);
             }
             let final_forward = nn.forward(&inputs);
             let loss = mse(&y_actual, &final_forward);
