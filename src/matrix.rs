@@ -206,6 +206,11 @@ impl Matrix {
             data: new_data,
         }
     }
+
+    pub fn to_vector(self) -> Vector {
+        assert_eq!(self.cols, 1);
+        Vector(self)
+    }
 }
 
 #[derive(Clone)]
@@ -295,11 +300,28 @@ impl Add<Vector> for Vector {
     }
 }
 
-impl Sub for Vector {
+impl Sub<Vector> for Vector {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
+        self - &rhs
+    }
+}
+
+impl Sub<&Vector> for Vector {
+    type Output = Self;
+
+    fn sub(self, rhs: &Self) -> Self::Output {
         self + rhs * -1.0
+    }
+}
+
+impl Sub<&Vector> for &Vector {
+    type Output = Vector;
+
+    fn sub(self, rhs: &Vector) -> Self::Output {
+        let data = self.data().iter().zip(rhs.data().iter()).map(|(a, b)| a - b).collect();
+        Vector::new(data)
     }
 }
 

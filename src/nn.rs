@@ -2,19 +2,18 @@ use crate::matrix::{Matrix, Vector};
 
 trait ActivationFunction {
     fn apply(&self, vector: Vector) -> Vector;
-    fn apply_derivative(&self, vector: Vector) -> Vector;
+    fn apply_derivative(&self, vector: &Vector) -> Vector;
 }
 
 struct Relu;
 
 impl ActivationFunction for Relu {
-
     fn apply(&self, vector: Vector) -> Vector {
         let data = vector.data().iter().map(|x| x.max(0.0)).collect();
         Vector::new(data)
     }
 
-    fn apply_derivative(&self, vector: Vector) -> Vector {
+    fn apply_derivative(&self, vector: &Vector) -> Vector {
         let data = vector.data().iter().map(|x| if *x > 0.0 { 1.0 } else { 0.0 }).collect();
         Vector::new(data)
     }
@@ -50,23 +49,30 @@ impl Layer {
     }
 
     pub fn forward(&self, inputs: &Vector) -> Vector {
-        let Layer {bias, weights} = self;
+        let Layer { bias, weights } = self;
         let z = weights * inputs + bias;
         let a = Relu.apply(z);
         a
     }
 
-    pub fn backward(&mut self, inputs: &Vector, outputs: &Vector, y_actual: &Vector, learning_rate: f32) {
-        let Layer {bias, weights} = &*self;
-        let z = weights * inputs + bias;
-        let a = Relu.apply(z);
+    pub fn backward(
+        &mut self,
+        inputs: &Vector,
+        y_calculated: &Vector,
+        y_actual: &Vector,
+        learning_rate: f32
+    ) -> Vector {
+        // Magic! This is just the vectorized form of partial derivatives of loss relative to each
+        // element in the upstream matrices/vectors.
+        let delta = mse_derivative(y_actual, y_calculated).elementwise_mul(&Relu.apply_derivative(y_calculated));
+        let weights_gradient = delta.as_matrix() * inputs.as_matrix().transpose();
+        let bias_gradient = delta.clone();
+        let previous_input_gradient = self.weights.transpose() * delta;
 
-        let delta = mse_derivative(y_actual, outputs).elementwise_mul(&Relu.apply_derivative(a));
-        let gradient_weights = delta.as_matrix() * inputs.as_matrix().transpose();
-        let gradient_bias = delta;
+        self.weights = self.weights.clone() - weights_gradient * learning_rate;
+        self.bias = self.bias.clone() - bias_gradient * learning_rate;
 
-        todo!()
-
+        previous_input_gradient
     }
 }
 
@@ -86,6 +92,48 @@ impl NeuralNetwork {
             result = layer.forward(&result);
         }
         result
+    }
+
+    pub fn backward(&mut self, inputs: &Vector, y_actual: &Vector) {
+        let learning_rate = 0.01;
+        let layer_original_outputs = {
+            let mut outputs: Vec<Vector> = vec![];
+            for (i, layer) in self.layers.iter().enumerate() {
+                let input = if i == 0 { inputs.clone() } else { outputs[i - 1].clone()};
+                let y_calculated = layer.forward(&input);
+                outputs.push(y_calculated.clone());
+            }
+            outputs
+        };
+
+        let layers_count = self.layers.len();
+        let mut previous_input_gradient = Vector::new(vec![]);
+        for (i, layer) in self.layers.iter_mut().enumerate().rev() {
+            let inputs = {
+                if i == 0 {
+                    inputs.clone()
+                } else {
+                    layer_original_outputs[i - 1].clone()
+                }
+            };
+            let y_calculated = {
+                if i == layers_count - 1 {
+                    layer_original_outputs[i].clone()
+                } else {
+                    layer_original_outputs[i + 1].clone()
+                }
+            };
+            let y_expected = {
+                let diff = y_calculated.elementwise_mul(&previous_input_gradient);
+                &y_calculated - &diff
+            };
+            previous_input_gradient = layer.backward(
+                &inputs,
+                &y_calculated,
+                &y_actual,
+                learning_rate,
+            );
+        }
     }
 }
 
