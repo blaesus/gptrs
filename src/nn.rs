@@ -160,15 +160,21 @@ mod tests {
 
     #[test]
     fn test_nn_backward_manual_case() {
-        let layer1 = Layer {
-            weights: Matrix::from_data(vec![1.0, 2.0, 3.0, -4.0, -5.0, -6.0], 2, 3),
-            bias: Vector::new_uniform(-2.0, 2),
-        };
-        let layer2 = Layer {
-            weights: Matrix::from_data(vec![1.0, 2.0, 3.0, 4.0], 2, 2),
-            bias: Vector::new_uniform(-1.0, 2),
-        };
-        let mut nn = NeuralNetwork::new(vec![layer1, layer2]);
+
+        fn make_nn() -> NeuralNetwork {
+            let layer1 = Layer {
+                weights: Matrix::from_data(vec![1.0, 2.0, 3.0, -4.0, -5.0, -6.0], 2, 3),
+                bias: Vector::new_uniform(-2.0, 2),
+            };
+            let layer2 = Layer {
+                weights: Matrix::from_data(vec![1.0, 2.0, 3.0, 4.0], 2, 2),
+                bias: Vector::new_uniform(-1.0, 2),
+            };
+            NeuralNetwork::new(vec![layer1, layer2])
+        }
+
+        let mut nn = make_nn();
+
         let inputs = Vector::new(vec![1.0, 0.0, 1.0]);
         let forward_1 = nn.forward(&inputs);
         assert_eq!(forward_1.data(), &vec![1.0, 5.0]);
@@ -181,5 +187,17 @@ mod tests {
 
         assert_eq!(nn.layers[0].weights, Matrix::from_data(vec![0.5, 2.0, 2.5, -4.0, -5.0, -6.0], 2, 3));
         assert_eq!(nn.layers[0].bias, Vector::new(vec![-2.5, -2.0]));
+
+        // Test if the NN actually converges
+        {
+            let mut nn = make_nn();
+            for i in 0..1000 {
+                nn.backward(&inputs, &y_actual, 0.001);
+            }
+            let final_forward = nn.forward(&inputs);
+            let loss = mse(&y_actual, &final_forward);
+            assert!(loss < 0.0001, "Loss is too high: {}", loss)
+        }
+
     }
 }
