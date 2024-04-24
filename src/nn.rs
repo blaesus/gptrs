@@ -124,13 +124,17 @@ impl NeuralNetwork {
                 }
             };
             let y_expected = {
-                let diff = y_calculated.elementwise_mul(&previous_input_gradient);
-                &y_calculated - &diff
+                if i == layers_count - 1 {
+                    y_actual.clone()
+                } else {
+                    let diff = y_calculated.elementwise_mul(&previous_input_gradient);
+                    &y_calculated - &diff
+                }
             };
             previous_input_gradient = layer.backward(
                 &inputs,
                 &y_calculated,
-                &y_actual,
+                &y_expected,
                 learning_rate,
             );
         }
@@ -161,18 +165,18 @@ mod tests {
     #[test]
     fn test_nn_backward() {
         let layer1 = Layer {
-            weights: Matrix::from_data(vec![1.0, 2.0, 3.0, -4.0], 2, 2),
+            weights: Matrix::from_data(vec![1.0, 2.0, 3.0, -4.0, -5.0, -6.0], 2, 3),
             bias: Vector::new_uniform(1.0, 2),
         };
         let layer2 = Layer {
-            weights: Matrix::from_data(vec![1.0, 2.0], 1, 2),
-            bias: Vector::new_uniform(1.0, 1),
+            weights: Matrix::from_data(vec![1.0, 2.0, 3.0, 4.0], 2, 2),
+            bias: Vector::new_uniform(-1.0, 2),
         };
         let mut nn = NeuralNetwork::new(vec![layer1, layer2]);
-        let inputs = Vector::new(vec![1.0, 2.0]);
-        let y_actual = Vector::new(vec![7.0]);
+        let inputs = Vector::new(vec![1.0, 0.0, -1.0]);
+        let forward = nn.forward(&inputs);
+        assert_eq!(forward.data(), &vec![5.0, 11.0]);
+        let y_actual = Vector::new(vec![4.0, 10.0]);
         nn.backward(&inputs, &y_actual);
-        let result = nn.forward(&inputs);
-        assert_eq!(result.data(), &vec![7.0]);
     }
 }

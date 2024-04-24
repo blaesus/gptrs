@@ -1,7 +1,7 @@
 use std::ops::{Add, Mul, Sub};
 use crate::rand::{random_f32, random_gaussian};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Matrix {
     pub rows: usize,
     pub cols: usize,
@@ -213,7 +213,7 @@ impl Matrix {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Vector(Matrix);
 
 impl Vector {
