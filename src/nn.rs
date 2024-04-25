@@ -77,6 +77,7 @@ impl Layer {
 
     pub fn normalize(&mut self) {
         self.bias.normalize();
+        self.weights.normalize();
     }
 
     pub fn forward(&self, inputs: &Vector) -> Vector {
