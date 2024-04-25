@@ -36,6 +36,18 @@ struct FinalLayerInfo {
     y_actual: Vector,
 }
 
+impl From<FinalLayerInfo> for LayerInfo {
+    fn from(info: FinalLayerInfo) -> Self {
+        LayerInfo::Final(info)
+    }
+}
+
+impl From<EarlierLayerInfo> for LayerInfo {
+    fn from(info: EarlierLayerInfo) -> Self {
+        LayerInfo::Earlier(info)
+    }
+}
+
 #[derive(Debug, Clone)]
 struct EarlierLayerInfo {
     weights: Matrix,
@@ -248,7 +260,9 @@ impl NeuralNetwork {
         };
 
         // 2. Perform backward pass for each layer, starting from the output back to the first layer.
-        let mut downstream_layers: Vec<LayerInfo> = batch.iter().map(|point| LayerInfo::Final(FinalLayerInfo { y_actual: point.output.clone() })).collect();
+        let mut downstream_layers: Vec<LayerInfo> = batch.iter().map(
+            |point| FinalLayerInfo { y_actual: point.output.clone() }.into()
+        ).collect();
         for (l, layer) in self.layers.iter_mut().enumerate().rev() {
             let inputs_and_zs: Vec<DataPoint> = batch.iter().enumerate().map(|(batch_index, _)| DataPoint {
                 input: (if l == 0 { &batch[batch_index].input } else { &a_batch_vec[batch_index][l-1] }).clone(),
@@ -261,7 +275,7 @@ impl NeuralNetwork {
                 .collect();
 
             // Call the batched version of the backward function for each layer.
-            downstream_layers = layer.backward_batched(&data, learning_rate).into_iter().map(|info| LayerInfo::Earlier(info)).collect();
+            downstream_layers = layer.backward_batched(&data, learning_rate).into_iter().map(|info| info.into()).collect();
         }
     }
 }
