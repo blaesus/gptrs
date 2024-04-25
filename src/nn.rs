@@ -78,13 +78,14 @@ impl Layer {
     fn calculate_gradients(
         &self,
         inputs: &Vector,
-        y_predicted: &Vector,
+        z: &Vector,
         layer_info: &LayerInfo,
     ) -> Gradients {
-        let activation_derivatives = Relu.apply_derivative(y_predicted);
+        let activation_derivatives = Relu.apply_derivative(z);
         let delta = match layer_info {
             LayerInfo::Final(FinalLayerInfo { y_actual }) => {
-                mse_derivative(y_actual, y_predicted).elementwise_mul(&activation_derivatives)
+                let a = Relu.apply(z.clone());
+                mse_derivative(y_actual, &a).elementwise_mul(&activation_derivatives)
             }
             LayerInfo::Earlier(EarlierLayerInfo { weights, delta }) => {
                 (weights.transpose() * delta).elementwise_mul(&activation_derivatives)
@@ -102,7 +103,7 @@ impl Layer {
     pub fn backward(
         &mut self,
         inputs: &Vector,
-        y_predicted: &Vector,
+        z: &Vector,
         layer_info: &LayerInfo,
         learning_rate: f32,
     ) -> EarlierLayerInfo {
@@ -111,7 +112,7 @@ impl Layer {
             weights: weights_gradient,
             bias: bias_gradient,
             delta
-        } = self.calculate_gradients(inputs, y_predicted, layer_info);
+        } = self.calculate_gradients(inputs, z, layer_info);
         self.weights -= weights_gradient * learning_rate;
         self.bias -= bias_gradient * learning_rate;
 
@@ -141,15 +142,21 @@ impl NeuralNetwork {
     }
 
     pub fn backward(&mut self, inputs: &Vector, y_actual: &Vector, learning_rate: f32) {
-        let layer_original_outputs = {
-            let mut outputs: Vec<Vector> = vec![];
-            for (i, layer) in self.layers.iter().enumerate() {
-                let input = if i == 0 { inputs.clone() } else { outputs[i - 1].clone() };
-                let y_predicted = layer.forward(&input);
-                outputs.push(y_predicted.clone());
-            }
-            outputs
-        };
+        let mut a_vec: Vec<Vector> = vec![];
+        let mut z_vec: Vec<Vector> = vec![];
+        for layer in self.layers.iter() {
+            let layer = layer.clone();
+            let input = {
+                match a_vec.last() {
+                    Some(a) => a.clone(),
+                    None => inputs.clone(),
+                }
+            };
+            let z = layer.weights * input + layer.bias;
+            let a = Relu.apply(z.clone());
+            z_vec.push(z);
+            a_vec.push(a);
+        }
 
         let mut layer_info = LayerInfo::Final(FinalLayerInfo { y_actual: y_actual.clone() });
         for (i, layer) in self.layers.iter_mut().enumerate().rev() {
@@ -157,15 +164,15 @@ impl NeuralNetwork {
                 if i == 0 {
                     inputs.clone()
                 } else {
-                    layer_original_outputs[i - 1].clone()
+                    a_vec[i - 1].clone()
                 }
             };
-            let y_predicted = {
-                layer_original_outputs[i].clone()
+            let z = {
+                z_vec[i].clone()
             };
             layer_info = LayerInfo::Earlier(layer.backward(
                 &inputs,
-                &y_predicted,
+                &z,
                 &layer_info,
                 learning_rate,
             ));
