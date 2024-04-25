@@ -195,6 +195,16 @@ impl Matrix {
         }
     }
 
+    pub fn normalize(&mut self) {
+        let mean = self.data.iter().sum::<f32>() / self.data.len() as f32;
+        let n = self.data.len()-1; // Bessel's correction
+        let variance = self.data.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / n as f32;
+        let std_dev = variance.sqrt();
+        for i in 0..self.data.len() {
+            self.data[i] = (self.data[i] - mean) / std_dev;
+        }
+    }
+
     pub fn new_kaiming(rows: usize, cols: usize) -> Matrix {
         let mut data = Vec::with_capacity(rows * cols);
         for _ in 0..rows * cols {

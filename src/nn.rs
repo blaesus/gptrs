@@ -25,7 +25,7 @@ fn mse(y_actual: &Vector, y_predicted: &Vector) -> f32 {
 }
 
 fn mse_derivative(y_actual: &Vector, y_predicted: &Vector) -> Vector {
-    let n = y_actual.data().len() as f32;
+    let n = y_actual.size() as f32;
     let data = y_actual.data().iter().zip(y_predicted.data()).map(|(a, b)| 2.0 * (b - a) / n).collect();
     Vector::new(data)
 }
@@ -335,14 +335,15 @@ mod tests {
         }
     }
 
-    fn random_subbatch(mut data: Vec<DataPoint>, percentage: f32) -> Vec<DataPoint> {
+    fn random_mini_batch(mut data: &[DataPoint], percentage: f32) -> Vec<DataPoint> {
         let n = (data.len() as f32 * percentage).round() as usize;
+        let mut indices = (0..data.len()).collect::<Vec<_>>();
         for i in 0..n {
             let j = (random_f32() * data.len() as f32) as usize;
-            data.swap(i, j);
+            indices.swap(i, j);
         }
-        data.truncate(n);
-        data
+        indices.truncate(n);
+        indices.iter().map(|&i| data[i].clone()).collect()
     }
 
     #[test]
@@ -352,15 +353,15 @@ mod tests {
         fn make_nn() -> NeuralNetwork {
             let layer1 = Layer {
                 weights: Matrix::new_random(5, 3),
-                bias: Vector::new_kaiming(5),
+                bias: Vector::zeros(5),
             };
             let layer2 = Layer {
                 weights: Matrix::new_random(5, 5),
-                bias: Vector::new_kaiming(5),
+                bias: Vector::zeros(5),
             };
             let layer3 = Layer {
                 weights: Matrix::new_random(2, 5),
-                bias: Vector::new_kaiming(2),
+                bias: Vector::zeros(2),
             };
             NeuralNetwork::new(vec![layer1, layer2, layer3])
         }
@@ -370,14 +371,14 @@ mod tests {
         {
             let learning_rate = 0.001;
             let mut nn = make_nn();
-            // x=a+b, y=b+c
+            // x=a+b+1, y=b+c+2
             let data = {
                 let mut data = vec![];
                 for a in -20..20 {
                     for b in -20..20 {
                         for c in -20..20 {
-                            let x = a as f32 + b as f32;
-                            let y = b as f32 + c as f32;
+                            let x = a as f32 + b as f32 + 1.0;
+                            let y = b as f32 + c as f32 + 2.0;
                             let input = Vector::new(vec![a as f32, b as f32, c as f32]);
                             let output = Vector::new(vec![x, y]);
                             data.push(DataPoint { input, output });
@@ -387,15 +388,17 @@ mod tests {
                 data
             };
 
-            let inputs = Vector::new(vec![1.0, 2.0, 3.0]);
+            let inputs = Vector::new(vec![3.0, 2.0, -1.0]);
             for _ in 0..1000 {
-                let mini_batch = random_subbatch(data.clone(), 0.1);
+                let mini_batch = random_mini_batch(&data, 0.2);
+
                 nn.backward_batched(&mini_batch, learning_rate);
                 let forward = nn.forward(&inputs);
-                println!("forward: {:?}", forward);
+                println!("Forward {:?}", forward);
             }
-            let inputs = Vector::new(vec![-1.0, 2.0, 3.0]);
             let final_forward = nn.forward(&inputs);
+            let loss = mse(&Vector::new(vec![6.0, 3.0]), &final_forward);
+            assert_eq!(loss, 0.01, "Loss is too high: {}", loss);
             println!("Final forward: {:?}", final_forward);
             println!("Weights L0: {:?}", nn.layers[0].weights);
         }
