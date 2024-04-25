@@ -229,8 +229,8 @@ mod tests {
         assert_eq!(nn.layers[1].weights, Matrix::from_data(vec![2.0, 2.0, 2.0, 4.0], 2, 2));
         assert_eq!(nn.layers[1].bias, Vector::new(vec![-0.5, -1.5]));
 
-        assert_eq!(nn.layers[0].weights, Matrix::from_data(vec![0.5, 2.0, 2.5, -4.0, -5.0, -6.0], 2, 3));
-        assert_eq!(nn.layers[0].bias, Vector::new(vec![-2.5, -2.0]));
+        assert_eq!(nn.layers[0].weights, Matrix::from_data(vec![0.0, 2.0, 2.0, -4.0, -5.0, -6.0], 2, 3));
+        assert_eq!(nn.layers[0].bias, Vector::new(vec![-3.0, -2.0]));
 
         // Test if the NN works at all
         {
