@@ -107,7 +107,11 @@ impl Layer {
         learning_rate: f32,
     ) -> EarlierLayerInfo {
         let original_weights = self.weights.clone();
-        let Gradients { weights: weights_gradient, bias: bias_gradient, delta } = self.calculate_gradients(inputs, y_predicted, layer_info);
+        let Gradients {
+            weights: weights_gradient,
+            bias: bias_gradient,
+            delta
+        } = self.calculate_gradients(inputs, y_predicted, layer_info);
         self.weights = self.weights.clone() - weights_gradient * learning_rate;
         self.bias = self.bias.clone() - bias_gradient * learning_rate;
 
