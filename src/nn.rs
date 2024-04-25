@@ -141,7 +141,7 @@ impl NeuralNetwork {
         result
     }
 
-    pub fn backward(&mut self, inputs: &Vector, y_actual: &Vector, learning_rate: f32) {
+    pub fn backward(&mut self, netowrk_input: &Vector, y_actual: &Vector, learning_rate: f32) {
         let (a_vec, z_vec) = {
             let mut a_vec: Vec<Vector> = vec![];
             let mut z_vec: Vec<Vector> = vec![];
@@ -149,8 +149,8 @@ impl NeuralNetwork {
                 let layer = layer.clone();
                 let input = {
                     match a_vec.last() {
-                        Some(a) => a.clone(),
-                        None => inputs.clone(),
+                        Some(a) => a,
+                        None => netowrk_input,
                     }
                 };
                 let z = layer.weights * input + layer.bias;
@@ -163,18 +163,12 @@ impl NeuralNetwork {
 
         let mut layer_info = LayerInfo::Final(FinalLayerInfo { y_actual: y_actual.clone() });
         for (i, layer) in self.layers.iter_mut().enumerate().rev() {
-            let inputs = {
-                if i == 0 {
-                    inputs.clone()
-                } else {
-                    a_vec[i - 1].clone()
-                }
-            };
+            let inputs = if i == 0 { &netowrk_input } else { &a_vec[i - 1] };
             let z = {
                 z_vec[i].clone()
             };
             layer_info = LayerInfo::Earlier(layer.backward(
-                &inputs,
+                inputs,
                 &z,
                 &layer_info,
                 learning_rate,
