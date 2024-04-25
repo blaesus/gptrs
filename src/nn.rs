@@ -146,14 +146,13 @@ impl NeuralNetwork {
             let mut a_vec: Vec<Vector> = vec![];
             let mut z_vec: Vec<Vector> = vec![];
             for layer in self.layers.iter() {
-                let layer = layer.clone();
                 let input = {
                     match a_vec.last() {
                         Some(a) => a,
                         None => netowrk_input,
                     }
                 };
-                let z = layer.weights * input + layer.bias;
+                let z = &layer.weights * input + &layer.bias;
                 let a = Relu.apply(&z);
                 z_vec.push(z);
                 a_vec.push(a);
