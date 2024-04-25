@@ -59,13 +59,13 @@ impl Layer {
     pub fn backward(
         &mut self,
         inputs: &Vector,
-        y_calculated: &Vector,
+        y_predicted: &Vector,
         y_actual: &Vector,
         learning_rate: f32,
     ) -> Vector {
         // Magic! This is just the vectorized form of partial derivatives of loss relative to each
         // element in the upstream matrices/vectors.
-        let delta = mse_derivative(y_actual, y_calculated).elementwise_mul(&Relu.apply_derivative(y_calculated));
+        let delta = mse_derivative(y_actual, y_predicted).elementwise_mul(&Relu.apply_derivative(y_predicted));
         let weights_gradient = delta.as_matrix() * inputs.as_matrix().transpose();
         let bias_gradient = delta.clone();
         let previous_input_gradient = self.weights.transpose() * delta;
@@ -100,8 +100,8 @@ impl NeuralNetwork {
             let mut outputs: Vec<Vector> = vec![];
             for (i, layer) in self.layers.iter().enumerate() {
                 let input = if i == 0 { inputs.clone() } else { outputs[i - 1].clone() };
-                let y_calculated = layer.forward(&input);
-                outputs.push(y_calculated.clone());
+                let y_predicted = layer.forward(&input);
+                outputs.push(y_predicted.clone());
             }
             outputs
         };
@@ -116,7 +116,7 @@ impl NeuralNetwork {
                     layer_original_outputs[i - 1].clone()
                 }
             };
-            let y_calculated = {
+            let y_predicted = {
                 layer_original_outputs[i].clone()
             };
             let y_expected = {
@@ -124,12 +124,12 @@ impl NeuralNetwork {
                     y_actual.clone()
                 } else {
                     let diff = previous_input_gradient * learning_rate;
-                    &y_calculated - &diff
+                    &y_predicted - &diff
                 }
             };
             previous_input_gradient = layer.backward(
                 &inputs,
-                &y_calculated,
+                &y_predicted,
                 &y_expected,
                 learning_rate,
             );
