@@ -75,7 +75,7 @@ impl Layer {
         a
     }
 
-    pub fn calculate_gradients(
+    fn calculate_gradients(
         &self,
         inputs: &Vector,
         y_predicted: &Vector,
