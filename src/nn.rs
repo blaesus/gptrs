@@ -56,6 +56,11 @@ struct Gradients {
     delta: Vector,
 }
 
+struct DataPoint {
+    input: Vector,
+    output: Vector,
+}
+
 impl Layer {
     pub fn new_kaiming(input_size: usize, output_size: usize) -> Layer {
         Layer {
@@ -100,7 +105,8 @@ impl Layer {
         }
     }
 
-    pub fn backward(
+    // SGD. Clean and simple.
+    pub fn backward_single(
         &mut self,
         input: &Vector,
         z: &Vector,
@@ -115,6 +121,40 @@ impl Layer {
         } = self.calculate_gradients(input, z, layer_info);
         self.weights -= weights_gradient * learning_rate;
         self.bias -= bias_gradient * learning_rate;
+
+        EarlierLayerInfo {
+            weights: original_weights,
+            delta,
+        }
+    }
+
+    pub fn backward(
+        &mut self,
+        batch: &[DataPoint],
+        layer_info: &LayerInfo,
+        learning_rate: f32,
+    ) -> EarlierLayerInfo {
+        let original_weights = self.weights.clone();
+        let mut accumulated_weight_gradient = Matrix::zeros(self.weights.rows, self.weights.cols);
+        let mut accumulated_bias_gradient = Vector::zeros(self.bias.size());
+        let mut delta = Vector::zeros(self.weights.rows);
+
+        for data_point in batch {
+            let DataPoint { input, output: z } = data_point;
+            let Gradients {
+                weights: weights_gradient,
+                bias: bias_gradient,
+                delta: calculated_delta
+            } = self.calculate_gradients(input, z, layer_info);
+            accumulated_weight_gradient += weights_gradient;
+            accumulated_bias_gradient += bias_gradient;
+            delta = calculated_delta;
+        }
+        let averaged_weights_gradient = accumulated_weight_gradient / batch.len() as f32;
+        let averaged_bias_gradient = accumulated_bias_gradient / batch.len() as f32;
+
+        self.weights -= averaged_weights_gradient * learning_rate;
+        self.bias -= averaged_bias_gradient * learning_rate;
 
         EarlierLayerInfo {
             weights: original_weights,
@@ -166,9 +206,12 @@ impl NeuralNetwork {
             let z = {
                 z_vec[i].clone()
             };
+            let data_point = DataPoint {
+                input: inputs.clone().clone(),
+                output: z.clone(),
+            };
             layer_info = LayerInfo::Earlier(layer.backward(
-                inputs,
-                &z,
+                &[data_point],
                 &layer_info,
                 learning_rate,
             ));

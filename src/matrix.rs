@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 use crate::rand::{random_f32, random_gaussian};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -14,7 +14,7 @@ impl Mul<&Matrix> for &Matrix {
 
     fn mul(self, rhs: &Matrix) -> Matrix {
         assert_eq!(self.cols, rhs.rows);
-        let mut result = Matrix::new(self.rows, rhs.cols);
+        let mut result = Matrix::zeros(self.rows, rhs.cols);
         for i in 0..self.rows {
             for j in 0..rhs.cols {
                 let mut sum = 0.0;
@@ -133,6 +133,34 @@ impl Sub for Matrix {
     }
 }
 
+impl AddAssign<Matrix> for Matrix {
+    fn add_assign(&mut self, rhs: Self) {
+        assert_eq!(self.rows, rhs.rows);
+        assert_eq!(self.cols, rhs.cols);
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                self.set(i, j, self.get(i, j) + rhs.get(i, j));
+            }
+        }
+    }
+}
+
+impl Div<f32> for Matrix {
+    type Output = Self;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        let mut new_data = self.data.clone();
+        for i in 0..new_data.len() {
+            new_data[i] /= rhs;
+        }
+        Matrix {
+            rows: self.rows,
+            cols: self.cols,
+            data: new_data,
+        }
+    }
+}
+
 impl SubAssign for Matrix {
     fn sub_assign(&mut self, rhs: Self) {
         assert_eq!(self.rows, rhs.rows);
@@ -147,7 +175,7 @@ impl SubAssign for Matrix {
 
 
 impl Matrix {
-    pub fn new(rows: usize, cols: usize) -> Matrix {
+    pub fn zeros(rows: usize, cols: usize) -> Matrix {
         Matrix {
             rows,
             cols,
@@ -237,6 +265,10 @@ impl Vector {
         })
     }
 
+     pub fn zeros(length: usize) -> Self {
+        Self::new(vec![0.0; length])
+     }
+
     pub fn new_uniform(element: f32, length: usize) -> Self {
         Self::new((0..length).map(|_| element).collect())
     }
@@ -269,6 +301,10 @@ impl Vector {
 
     pub fn data(&self) -> &Vec<f32> {
         &self.0.data
+    }
+
+    pub fn size(&self) -> usize {
+        self.data().len()
     }
 
     pub fn data_mut(&mut self) -> &mut Vec<f32> {
@@ -309,6 +345,15 @@ impl Add<Vector> for Vector {
 
     fn add(self, rhs: Self) -> Self::Output {
         self + &rhs
+    }
+}
+
+impl AddAssign<Vector> for Vector {
+    fn add_assign(&mut self, rhs: Self) {
+        assert_eq!(self.data().len(), rhs.data().len());
+        for i in 0..self.data().len() {
+            self.data_mut()[i] += rhs.data()[i];
+        }
     }
 }
 
@@ -364,7 +409,18 @@ impl Mul<f32> for &Vector {
         }
         return Vector::new(new_data);
     }
+}
 
+impl Div<f32> for Vector {
+    type Output = Self;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        let mut new_data = self.data().clone();
+        for i in 0..new_data.len() {
+            new_data[i] /= rhs;
+        }
+        return Vector::new(new_data);
+    }
 }
 
 // Tests
