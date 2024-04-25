@@ -77,7 +77,7 @@ impl Layer {
 
     fn calculate_gradients(
         &self,
-        inputs: &Vector,
+        input: &Vector,
         z: &Vector,
         layer_info: &LayerInfo,
     ) -> Gradients {
@@ -91,7 +91,7 @@ impl Layer {
                 (weights.transpose() * delta).elementwise_mul(&activation_derivatives)
             }
         };
-        let weights_gradient = delta.as_matrix() * inputs.as_matrix().transpose();
+        let weights_gradient = delta.as_matrix() * input.as_matrix().transpose();
         let bias_gradient = delta.clone();
         Gradients {
             weights: weights_gradient,
@@ -102,7 +102,7 @@ impl Layer {
 
     pub fn backward(
         &mut self,
-        inputs: &Vector,
+        input: &Vector,
         z: &Vector,
         layer_info: &LayerInfo,
         learning_rate: f32,
@@ -112,7 +112,7 @@ impl Layer {
             weights: weights_gradient,
             bias: bias_gradient,
             delta
-        } = self.calculate_gradients(inputs, z, layer_info);
+        } = self.calculate_gradients(input, z, layer_info);
         self.weights -= weights_gradient * learning_rate;
         self.bias -= bias_gradient * learning_rate;
 
