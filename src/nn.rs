@@ -1,14 +1,14 @@
 use crate::matrix::{Matrix, Vector};
 
 trait ActivationFunction {
-    fn apply(&self, vector: Vector) -> Vector;
+    fn apply(&self, vector: &Vector) -> Vector;
     fn apply_derivative(&self, vector: &Vector) -> Vector;
 }
 
 struct Relu;
 
 impl ActivationFunction for Relu {
-    fn apply(&self, vector: Vector) -> Vector {
+    fn apply(&self, vector: &Vector) -> Vector {
         let data = vector.data().iter().map(|x| x.max(0.0)).collect();
         Vector::new(data)
     }
@@ -71,7 +71,7 @@ impl Layer {
     pub fn forward(&self, inputs: &Vector) -> Vector {
         let Layer { bias, weights } = self;
         let z = weights * inputs + bias;
-        let a = Relu.apply(z);
+        let a = Relu.apply(&z);
         a
     }
 
@@ -84,7 +84,7 @@ impl Layer {
         let activation_derivatives = Relu.apply_derivative(z);
         let delta = match layer_info {
             LayerInfo::Final(FinalLayerInfo { y_actual }) => {
-                let a = Relu.apply(z.clone());
+                let a = Relu.apply(z);
                 mse_derivative(y_actual, &a).elementwise_mul(&activation_derivatives)
             }
             LayerInfo::Earlier(EarlierLayerInfo { weights, delta }) => {
@@ -153,7 +153,7 @@ impl NeuralNetwork {
                 }
             };
             let z = layer.weights * input + layer.bias;
-            let a = Relu.apply(z.clone());
+            let a = Relu.apply(&z);
             z_vec.push(z);
             a_vec.push(a);
         }
