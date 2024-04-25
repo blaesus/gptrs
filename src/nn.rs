@@ -128,7 +128,7 @@ impl Layer {
         }
     }
 
-    pub fn backward(
+    pub fn backward_batched(
         &mut self,
         batch: &[DataPoint],
         layer_info: &LayerInfo,
@@ -203,6 +203,38 @@ impl NeuralNetwork {
         let mut layer_info = LayerInfo::Final(FinalLayerInfo { y_actual: y_actual.clone() });
         for (i, layer) in self.layers.iter_mut().enumerate().rev() {
             let inputs = if i == 0 { &network_input } else { &a_vec[i - 1] };
+            let z = &z_vec[i];
+            layer_info = LayerInfo::Earlier(layer.backward_single(
+                inputs,
+                z,
+                &layer_info,
+                learning_rate,
+            ));
+        }
+    }
+
+    pub fn backward_batched(&mut self, network_input: &Vector, y_actual: &Vector, learning_rate: f32) {
+        let (a_vec, z_vec) = {
+            let mut a_vec: Vec<Vector> = vec![];
+            let mut z_vec: Vec<Vector> = vec![];
+            for layer in self.layers.iter() {
+                let input = {
+                    match a_vec.last() {
+                        Some(a) => a,
+                        None => network_input,
+                    }
+                };
+                let z = &layer.weights * input + &layer.bias;
+                let a = Relu.apply(&z);
+                z_vec.push(z);
+                a_vec.push(a);
+            }
+            (a_vec, z_vec)
+        };
+
+        let mut layer_info = LayerInfo::Final(FinalLayerInfo { y_actual: y_actual.clone() });
+        for (i, layer) in self.layers.iter_mut().enumerate().rev() {
+            let inputs = if i == 0 { &network_input } else { &a_vec[i - 1] };
             let z = {
                 z_vec[i].clone()
             };
@@ -210,7 +242,7 @@ impl NeuralNetwork {
                 input: inputs.clone().clone(),
                 output: z.clone(),
             };
-            layer_info = LayerInfo::Earlier(layer.backward(
+            layer_info = LayerInfo::Earlier(layer.backward_batched(
                 &[data_point],
                 &layer_info,
                 learning_rate,
