@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Mul, Sub, SubAssign};
 use crate::rand::{random_f32, random_gaussian};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -129,6 +129,18 @@ impl Sub for Matrix {
             rows: self.rows,
             cols: self.cols,
             data: new_data,
+        }
+    }
+}
+
+impl SubAssign for Matrix {
+    fn sub_assign(&mut self, rhs: Self) {
+        assert_eq!(self.rows, rhs.rows);
+        assert_eq!(self.cols, rhs.cols);
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                self.set(i, j, self.get(i, j) - rhs.get(i, j));
+            }
         }
     }
 }
@@ -322,6 +334,15 @@ impl Sub<&Vector> for &Vector {
     fn sub(self, rhs: &Vector) -> Self::Output {
         let data = self.data().iter().zip(rhs.data().iter()).map(|(a, b)| a - b).collect();
         Vector::new(data)
+    }
+}
+
+impl SubAssign<Vector> for Vector {
+    fn sub_assign(&mut self, rhs: Self) {
+        assert_eq!(self.data().len(), rhs.data().len());
+        for i in 0..self.data().len() {
+            self.data_mut()[i] -= rhs.data()[i];
+        }
     }
 }
 

@@ -112,8 +112,8 @@ impl Layer {
             bias: bias_gradient,
             delta
         } = self.calculate_gradients(inputs, y_predicted, layer_info);
-        self.weights = self.weights.clone() - weights_gradient * learning_rate;
-        self.bias = self.bias.clone() - bias_gradient * learning_rate;
+        self.weights -= weights_gradient * learning_rate;
+        self.bias -= bias_gradient * learning_rate;
 
         EarlierLayerInfo {
             weights: original_weights,
