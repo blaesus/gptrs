@@ -30,32 +30,38 @@ fn mse_derivative(y_actual: &Vector, y_predicted: &Vector) -> Vector {
     Vector::new(data)
 }
 
+
+#[derive(Debug, Clone)]
 struct FinalLayerInfo {
     y_actual: Vector,
 }
 
+#[derive(Debug, Clone)]
 struct EarlierLayerInfo {
     weights: Matrix,
     delta: Vector,
 }
 
+#[derive(Debug, Clone)]
 enum LayerInfo {
     Earlier(EarlierLayerInfo),
     Final(FinalLayerInfo),
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Layer {
     weights: Matrix,
     bias: Vector,
 }
 
+#[derive(Debug, Clone)]
 struct Gradients {
     weights: Matrix,
     bias: Vector,
     delta: Vector,
 }
 
+#[derive(Debug, Clone)]
 struct DataPoint {
     input: Vector,
     output: Vector,
@@ -130,36 +136,35 @@ impl Layer {
 
     pub fn backward_batched(
         &mut self,
-        batch: &[DataPoint],
-        layer_info: &LayerInfo,
+        data: &[(DataPoint, LayerInfo)],
         learning_rate: f32,
-    ) -> EarlierLayerInfo {
+    ) -> Vec<EarlierLayerInfo> {
         let original_weights = self.weights.clone();
         let mut accumulated_weight_gradient = Matrix::zeros(self.weights.rows, self.weights.cols);
         let mut accumulated_bias_gradient = Vector::zeros(self.bias.size());
-        let mut delta = Vector::zeros(self.weights.rows);
+        let mut deltas = vec![];
 
-        for data_point in batch {
-            let DataPoint { input, output: z } = data_point;
+        for point in data {
+            let (DataPoint { input, output: z }, downstreams) = point;
             let Gradients {
                 weights: weights_gradient,
                 bias: bias_gradient,
                 delta: calculated_delta
-            } = self.calculate_gradients(input, z, layer_info);
+            } = self.calculate_gradients(input, z, downstreams);
             accumulated_weight_gradient += weights_gradient;
             accumulated_bias_gradient += bias_gradient;
-            delta = calculated_delta;
+            deltas.push(calculated_delta);
         }
-        let averaged_weights_gradient = accumulated_weight_gradient / batch.len() as f32;
-        let averaged_bias_gradient = accumulated_bias_gradient / batch.len() as f32;
+        let averaged_weights_gradient = accumulated_weight_gradient / data.len() as f32;
+        let averaged_bias_gradient = accumulated_bias_gradient / data.len() as f32;
 
         self.weights -= averaged_weights_gradient * learning_rate;
         self.bias -= averaged_bias_gradient * learning_rate;
 
-        EarlierLayerInfo {
-            weights: original_weights,
-            delta,
-        }
+        deltas
+            .into_iter()
+            .map(|delta| EarlierLayerInfo { weights: original_weights.clone(), delta })
+            .collect()
     }
 }
 
@@ -200,53 +205,63 @@ impl NeuralNetwork {
             (a_vec, z_vec)
         };
 
-        let mut layer_info = LayerInfo::Final(FinalLayerInfo { y_actual: y_actual.clone() });
-        for (i, layer) in self.layers.iter_mut().enumerate().rev() {
-            let inputs = if i == 0 { &network_input } else { &a_vec[i - 1] };
-            let z = &z_vec[i];
-            layer_info = LayerInfo::Earlier(layer.backward_single(
-                inputs,
-                z,
-                &layer_info,
+        let mut downstream_layer = LayerInfo::Final(FinalLayerInfo { y_actual: y_actual.clone() });
+        for (l, layer) in self.layers.iter_mut().enumerate().rev() {
+            let layer_input = if l == 0 { &network_input } else { &a_vec[l - 1] };
+            let layer_z = &z_vec[l];
+            downstream_layer = LayerInfo::Earlier(layer.backward_single(
+                layer_input,
+                layer_z,
+                &downstream_layer,
                 learning_rate,
             ));
         }
     }
 
-    pub fn backward_batched(&mut self, network_input: &Vector, y_actual: &Vector, learning_rate: f32) {
-        let (a_vec, z_vec) = {
-            let mut a_vec: Vec<Vector> = vec![];
-            let mut z_vec: Vec<Vector> = vec![];
+    pub fn backward_batched(&mut self, batch: &[DataPoint], learning_rate: f32) {
+        // 1. Accumulate activations (a) and pre-activations (z) for all layers across the entire batch.
+        let (mut a_batch_vec, mut z_batch_vec): (Vec<Vec<Vector>>, Vec<Vec<Vector>>) = {
+            let mut a_batch_vec: Vec<Vec<Vector>> = Vec::new();
+            let mut z_batch_vec: Vec<Vec<Vector>> = Vec::new();
+
             for layer in self.layers.iter() {
-                let input = {
-                    match a_vec.last() {
-                        Some(a) => a,
-                        None => network_input,
-                    }
-                };
-                let z = &layer.weights * input + &layer.bias;
-                let a = Relu.apply(&z);
-                z_vec.push(z);
-                a_vec.push(a);
+                let mut a_layer_batch: Vec<Vector> = Vec::new();
+                let mut z_layer_batch: Vec<Vector> = Vec::new();
+
+                for data_point in batch {
+                    let input = {
+                        if a_layer_batch.is_empty() {
+                            &data_point.input
+                        } else {
+                            a_layer_batch.last().unwrap()
+                        }
+                    };
+                    let z = &layer.weights * input + &layer.bias;
+                    let a = Relu.apply(&z);
+                    z_layer_batch.push(z);
+                    a_layer_batch.push(a);
+                }
+                z_batch_vec.push(z_layer_batch);
+                a_batch_vec.push(a_layer_batch);
             }
-            (a_vec, z_vec)
+            (a_batch_vec, z_batch_vec)
         };
 
-        let mut layer_info = LayerInfo::Final(FinalLayerInfo { y_actual: y_actual.clone() });
-        for (i, layer) in self.layers.iter_mut().enumerate().rev() {
-            let inputs = if i == 0 { &network_input } else { &a_vec[i - 1] };
-            let z = {
-                z_vec[i].clone()
-            };
-            let data_point = DataPoint {
-                input: inputs.clone().clone(),
-                output: z.clone(),
-            };
-            layer_info = LayerInfo::Earlier(layer.backward_batched(
-                &[data_point],
-                &layer_info,
-                learning_rate,
-            ));
+        // 2. Perform backward pass for each layer, starting from the output back to the first layer.
+        let mut downstream_layers: Vec<LayerInfo> = batch.iter().map(|point| LayerInfo::Final(FinalLayerInfo { y_actual: point.output.clone() })).collect();
+        for (l, layer) in self.layers.iter_mut().enumerate().rev() {
+            let inputs_and_zs: Vec<DataPoint> = batch.iter().enumerate().map(|(index, _)| DataPoint {
+                input: (if l == 0 { &batch[index].input } else { &a_batch_vec[l - 1][index] }).clone(),
+                output: z_batch_vec[l][index].clone(),
+            }).collect();
+
+            let data: Vec<(DataPoint, LayerInfo)> = inputs_and_zs.into_iter()
+                .zip(downstream_layers.iter())
+                .map(|(data_point, downstream)| (data_point, downstream.clone()))
+                .collect();
+
+            // Call the batched version of the backward function for each layer.
+            downstream_layers = layer.backward_batched(&data, learning_rate).into_iter().map(|info| LayerInfo::Earlier(info)).collect();
         }
     }
 }
