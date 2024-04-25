@@ -31,7 +31,7 @@ fn mse_derivative(y_actual: &Vector, y_predicted: &Vector) -> Vector {
 }
 
 struct FinalLayerInfo {
-    y_actual: Vector
+    y_actual: Vector,
 }
 
 struct EarlierLayerInfo {
@@ -48,6 +48,12 @@ enum LayerInfo {
 struct Layer {
     weights: Matrix,
     bias: Vector,
+}
+
+struct Gradients {
+    weights: Matrix,
+    bias: Vector,
+    delta: Vector,
 }
 
 impl Layer {
@@ -69,6 +75,30 @@ impl Layer {
         a
     }
 
+    pub fn calculate_gradients(
+        &self,
+        inputs: &Vector,
+        y_predicted: &Vector,
+        layer_info: &LayerInfo,
+    ) -> Gradients {
+        let activation_derivatives = Relu.apply_derivative(y_predicted);
+        let delta = match layer_info {
+            LayerInfo::Final(FinalLayerInfo { y_actual }) => {
+                mse_derivative(y_actual, y_predicted).elementwise_mul(&activation_derivatives)
+            }
+            LayerInfo::Earlier(EarlierLayerInfo { weights, delta }) => {
+                (weights.transpose() * delta).elementwise_mul(&activation_derivatives)
+            }
+        };
+        let weights_gradient = delta.as_matrix() * inputs.as_matrix().transpose();
+        let bias_gradient = delta.clone();
+        Gradients {
+            weights: weights_gradient,
+            bias: bias_gradient,
+            delta,
+        }
+    }
+
     pub fn backward(
         &mut self,
         inputs: &Vector,
@@ -76,28 +106,14 @@ impl Layer {
         layer_info: &LayerInfo,
         learning_rate: f32,
     ) -> EarlierLayerInfo {
-        // Magic! This is just the vectorized form of partial derivatives of loss relative to each
-        // element in the upstream matrices/vectors.
-        let activation_derivatives = Relu.apply_derivative(y_predicted);
-        let delta = match layer_info {
-            LayerInfo::Final(FinalLayerInfo { y_actual }) => {
-                mse_derivative(y_actual, y_predicted).elementwise_mul(&activation_derivatives)
-            },
-            LayerInfo::Earlier(EarlierLayerInfo { weights, delta }) => {
-                (weights.transpose() * delta).elementwise_mul(&activation_derivatives)
-            }
-        };
-        let weights_gradient = delta.as_matrix() * inputs.as_matrix().transpose();
-        let bias_gradient = delta.clone();
-        // let previous_input_gradient = self.weights.transpose() * delta;
-
         let original_weights = self.weights.clone();
+        let Gradients { weights: weights_gradient, bias: bias_gradient, delta } = self.calculate_gradients(inputs, y_predicted, layer_info);
         self.weights = self.weights.clone() - weights_gradient * learning_rate;
         self.bias = self.bias.clone() - bias_gradient * learning_rate;
 
         EarlierLayerInfo {
             weights: original_weights,
-            delta
+            delta,
         }
     }
 }
@@ -176,7 +192,6 @@ mod tests {
 
     #[test]
     fn test_nn_backward_manual_case() {
-
         let learning_rate = 0.5;
 
         fn make_nn() -> NeuralNetwork {
@@ -221,6 +236,5 @@ mod tests {
             let loss = mse(&y_actual, &final_forward);
             assert!(loss < 0.0001, "Loss is too high: {}", loss)
         }
-
     }
 }
