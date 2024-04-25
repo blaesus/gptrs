@@ -221,7 +221,7 @@ impl NeuralNetwork {
 
     pub fn backward_batched(&mut self, batch: &[DataPoint], learning_rate: f32) {
         // 1. Accumulate activations (a) and pre-activations (z) for all layers across the entire batch.
-        let (mut a_batch_vec, mut z_batch_vec): (Vec<Vec<Vector>>, Vec<Vec<Vector>>) = {
+        let (a_batch_vec, z_batch_vec): (Vec<Vec<Vector>>, Vec<Vec<Vector>>) = {
             let mut a_batch_vec: Vec<Vec<Vector>> = Vec::new();
             let mut z_batch_vec: Vec<Vec<Vector>> = Vec::new();
 
