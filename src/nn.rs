@@ -283,7 +283,7 @@ impl NeuralNetwork {
 
 #[cfg(test)]
 mod tests {
-    use crate::rand::random_f32;
+    use crate::rand::{random_f32, random_gaussian};
     use super::*;
 
     #[test]
@@ -366,47 +366,43 @@ mod tests {
         let learning_rate = 0.5;
 
         fn make_nn() -> NeuralNetwork {
-            let layer1 = Layer {
+            let mut layer1 = Layer {
                 weights: Matrix::new_random(5, 3),
-                bias: Vector::zeros(5),
+                bias: Vector::new_random(5),
             };
-            let layer2 = Layer {
-                weights: Matrix::new_random(5, 5),
-                bias: Vector::zeros(5),
-            };
-            let layer3 = Layer {
+            let mut layer3 = Layer {
                 weights: Matrix::new_random(2, 5),
-                bias: Vector::zeros(2),
+                bias: Vector::new_random(2),
             };
-            NeuralNetwork::new(vec![layer1, layer2, layer3])
+            layer1.normalize();
+            layer3.normalize();
+            NeuralNetwork::new(vec![layer1, layer3])
         }
 
 
-        // Test if the NN works at all
         {
             let learning_rate = 0.001;
             let mut nn = make_nn();
             // x=a+b+1, y=b+c+2
             let data = {
                 let mut data = vec![];
-                for a in -20..20 {
-                    for b in -20..20 {
-                        for c in -20..20 {
-                            let x = a as f32 + b as f32 + 1.0;
-                            let y = b as f32 + c as f32 + 2.0;
-                            let input = Vector::new(vec![a as f32, b as f32, c as f32]);
-                            let output = Vector::new(vec![x, y]);
-                            data.push(DataPoint { input, output });
-                        }
-                    }
+                for _ in 0..100000 {
+                    let a = random_gaussian(0.0, 1.0);
+                    let b = random_gaussian(1.0, 2.0);
+                    let c = random_gaussian(-2.0, 1.0);
+                    let x = a + b + 1.0;
+                    let y = b + c + 2.0;
+                    data.push(DataPoint {
+                        input: Vector::new(vec![a, b, c]),
+                        output: Vector::new(vec![x, y]),
+                    });
                 }
                 data
             };
 
             let inputs = Vector::new(vec![3.0, 2.0, -1.0]);
             for _ in 0..1000 {
-                let mini_batch = random_mini_batch(&data, 0.2);
-
+                let mini_batch = random_mini_batch(&data, 0.1);
                 nn.backward_batched(&mini_batch, learning_rate);
                 let forward = nn.forward(&inputs);
                 println!("Forward {:?}", forward);
