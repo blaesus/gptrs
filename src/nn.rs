@@ -145,12 +145,12 @@ impl Layer {
         let mut deltas = vec![];
 
         for point in data {
-            let (DataPoint { input, output: z }, downstreams) = point;
+            let (DataPoint { input, output: z }, downstream) = point;
             let Gradients {
                 weights: weights_gradient,
                 bias: bias_gradient,
                 delta: calculated_delta
-            } = self.calculate_gradients(input, z, downstreams);
+            } = self.calculate_gradients(input, z, downstream);
             accumulated_weight_gradient += weights_gradient;
             accumulated_bias_gradient += bias_gradient;
             deltas.push(calculated_delta);
@@ -224,16 +224,15 @@ impl NeuralNetwork {
             let mut a_batch_vec: Vec<Vec<Vector>> = Vec::new();
             let mut z_batch_vec: Vec<Vec<Vector>> = Vec::new();
 
-            for layer in self.layers.iter() {
+            for data_point in batch {
                 let mut a_layer_batch: Vec<Vector> = Vec::new();
                 let mut z_layer_batch: Vec<Vector> = Vec::new();
 
-                for data_point in batch {
+                for layer in self.layers.iter() {
                     let input = {
-                        if a_layer_batch.is_empty() {
-                            &data_point.input
-                        } else {
-                            a_layer_batch.last().unwrap()
+                        match a_layer_batch.last() {
+                            Some(a) => a,
+                            None => &data_point.input,
                         }
                     };
                     let z = &layer.weights * input + &layer.bias;
@@ -250,9 +249,9 @@ impl NeuralNetwork {
         // 2. Perform backward pass for each layer, starting from the output back to the first layer.
         let mut downstream_layers: Vec<LayerInfo> = batch.iter().map(|point| LayerInfo::Final(FinalLayerInfo { y_actual: point.output.clone() })).collect();
         for (l, layer) in self.layers.iter_mut().enumerate().rev() {
-            let inputs_and_zs: Vec<DataPoint> = batch.iter().enumerate().map(|(index, _)| DataPoint {
-                input: (if l == 0 { &batch[index].input } else { &a_batch_vec[l - 1][index] }).clone(),
-                output: z_batch_vec[l][index].clone(),
+            let inputs_and_zs: Vec<DataPoint> = batch.iter().enumerate().map(|(batch_index, _)| DataPoint {
+                input: (if l == 0 { &batch[batch_index].input } else { &a_batch_vec[batch_index][l-1] }).clone(),
+                output: z_batch_vec[batch_index][l].clone(),
             }).collect();
 
             let data: Vec<(DataPoint, LayerInfo)> = inputs_and_zs.into_iter()
@@ -269,6 +268,7 @@ impl NeuralNetwork {
 
 #[cfg(test)]
 mod tests {
+    use crate::rand::random_f32;
     use super::*;
 
     #[test]
@@ -332,6 +332,72 @@ mod tests {
 
             let loss = mse(&y_actual, &final_forward);
             assert!(loss < 0.0001, "Loss is too high: {}", loss)
+        }
+    }
+
+    fn random_subbatch(mut data: Vec<DataPoint>, percentage: f32) -> Vec<DataPoint> {
+        let n = (data.len() as f32 * percentage).round() as usize;
+        for i in 0..n {
+            let j = (random_f32() * data.len() as f32) as usize;
+            data.swap(i, j);
+        }
+        data.truncate(n);
+        data
+    }
+
+    #[test]
+    fn test_nn_backward_batched() {
+        let learning_rate = 0.5;
+
+        fn make_nn() -> NeuralNetwork {
+            let layer1 = Layer {
+                weights: Matrix::new_random(5, 3),
+                bias: Vector::new_kaiming(5),
+            };
+            let layer2 = Layer {
+                weights: Matrix::new_random(5, 5),
+                bias: Vector::new_kaiming(5),
+            };
+            let layer3 = Layer {
+                weights: Matrix::new_random(2, 5),
+                bias: Vector::new_kaiming(2),
+            };
+            NeuralNetwork::new(vec![layer1, layer2, layer3])
+        }
+
+
+        // Test if the NN works at all
+        {
+            let learning_rate = 0.001;
+            let mut nn = make_nn();
+            // x=a+b, y=b+c
+            let data = {
+                let mut data = vec![];
+                for a in -20..20 {
+                    for b in -20..20 {
+                        for c in -20..20 {
+                            let x = a as f32 + b as f32;
+                            let y = b as f32 + c as f32;
+                            let input = Vector::new(vec![a as f32, b as f32, c as f32]);
+                            let output = Vector::new(vec![x, y]);
+                            data.push(DataPoint { input, output });
+                        }
+                    }
+                }
+                data
+            };
+
+            let inputs = Vector::new(vec![1.0, 2.0, 3.0]);
+            for _ in 0..1000 {
+                let mini_batch = random_subbatch(data.clone(), 0.1);
+                nn.backward_batched(&mini_batch, learning_rate);
+                let forward = nn.forward(&inputs);
+                println!("forward: {:?}", forward);
+            }
+            let inputs = Vector::new(vec![-1.0, 2.0, 3.0]);
+            let final_forward = nn.forward(&inputs);
+            println!("Final forward: {:?}", final_forward);
+            println!("Weights L0: {:?}", nn.layers[0].weights);
         }
     }
 }
