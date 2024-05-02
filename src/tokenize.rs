@@ -19,17 +19,20 @@ fn find_most_frequent_pair(compressed: &[u16]) -> (u32, (u16, u16)) {
     (*max_freq, *max_freq_pair)
 }
 
-pub fn bbpe_compress(input: &[u8]) -> CompressResult {
+const PLACEHOLDER: u16 = 0;
+
+pub fn bbpe_compress(input: &[u8], dict_size: usize) -> CompressResult {
+    assert!(dict_size >= 256);
+    assert!(dict_size < 65536);
     let mut dict: Vec<(u16, u16)> = Vec::new();
     for i in 0..=255 {
-        dict.push((i as u16, 0));
+        dict.push((i as u16, PLACEHOLDER)); // second int is meaningless
     }
 
     let mut compressed: Vec<u16> = input.iter().map(|u| *u as u16).collect(); // convert u8 to u16
-    while dict.len() < 1000 {
+    while dict.len() < dict_size {
         // Find max frequency pair
         let (max_freq, max_freq_pair) = find_most_frequent_pair(&compressed);
-        println!("Max frequency pair: {:?} with frequency {}", max_freq_pair, max_freq);
         if max_freq <= 1 {
             break;
         }
@@ -59,7 +62,7 @@ pub fn bbpe_decompress(result: &CompressResult) -> String {
         let token = result.compressed[i];
         let (byte1, byte2) = result.dict[token as usize];
         decompressed.push(byte1);
-        if byte2 > 0 {
+        if byte2 != PLACEHOLDER {
             decompressed.push(byte2);
         }
     }
@@ -67,5 +70,35 @@ pub fn bbpe_decompress(result: &CompressResult) -> String {
         return String::from_utf8(result.compressed.iter().map(|&u| u as u8).collect()).unwrap();
     } else {
         bbpe_decompress(&CompressResult { compressed: decompressed, dict: result.dict.clone() })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_byte_pair_key() {
+        assert_eq!(byte_pair_key(1, 2), (1, 2));
+    }
+
+    #[test]
+    fn test_find_most_frequent_pair() {
+        let compressed = vec![1, 2, 3, 0, 1, 2, 0, 4, 1, 2, 4, 4, 1, 2, 4, 4];
+        assert_eq!(find_most_frequent_pair(&compressed), (4, (1, 2)));
+    }
+
+    #[test]
+    fn test_decompress_the_compressed() {
+        let input = "Hello world! Hello you! お願いします~ありがとうございます~".repeat(10);
+        let result = bbpe_compress(input.as_bytes(), 256+10);
+        assert!(result.compressed.len() < input.len());
+        assert_eq!(bbpe_decompress(&result).as_str(), input);
+    }
+
+    #[test]
+    fn test_fully_decompressed() {
+        assert_eq!(fully_decompressed(&[1, 2, 3, 4]), true);
+        assert_eq!(fully_decompressed(&[1, 2, 3, 256, 257]), false);
     }
 }
